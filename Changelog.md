@@ -4,6 +4,7 @@
 
 * Added folder structure for Unity (08/11/2024)
 * Added Luigi Prefab (08/11/2024)
+* Added Ghost Prefab (09/11/2024)
 
 ### Changed
 
