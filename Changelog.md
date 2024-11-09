@@ -2,6 +2,8 @@
 
 ### Added
 
+* Added folder structure for Unity (08/11/2024)
+
 ### Changed
 
 ### Deprecated
@@ -10,12 +12,7 @@
 
 ### Fixed
 
-* Changed artefact to portrait (04/11/2024)
-* Fixed agent declaration (04/11/2024)
-* Fixed called to artefact instead of portrait (04/11/2024)
-
 ### Security
-
 
 ## [develop] - 30/10/2024
 
