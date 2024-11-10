@@ -6,6 +6,7 @@
 * Added Luigi Prefab (08/11/2024)
 * Added Ghost Prefab (09/11/2024)
 * Added Boo Prefab (09/11/2024)
+* Merge branch develop to Pre-release-0.0.1 (09/11/2024)
 
 ### Changed
 
@@ -16,7 +17,7 @@
 ### Removed
 
 ### Fixed
-
+* Fixed Luigi Agent variables (09/11/2024)
 ### Security
 
 ## [develop] - 30/10/2024
