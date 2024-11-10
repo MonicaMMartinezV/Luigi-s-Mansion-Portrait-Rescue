@@ -38,6 +38,8 @@
 * Changed Luigi Model (04/11/2024)
 * Added conditions to only absorb red ghosts (04/11/2024)
 * Moved ghosts and portraits to MansionModel (05/11/2024)
+* Added new libraries (9/11/2024)
+* Added commented functionality libraries (11/9/2024)
 
 ### Deprecated
 
