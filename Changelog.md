@@ -11,13 +11,16 @@
 ### Changed
 
 * Modified Ghost Prefab Colors (09/11/2024)
+* Modified Luigi Prefab Import (11/11/2024)
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
 * Fixed Luigi Agent variables (09/11/2024)
+
 ### Security
 
 ## [develop] - 30/10/2024
