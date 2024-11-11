@@ -7,6 +7,7 @@
 * Added Ghost Prefab (09/11/2024)
 * Added Boo Prefab (09/11/2024)
 * Merge branch develop to Pre-release-0.0.1 (09/11/2024)
+* Added initialization of model for test purposes (11/11/2024)
 
 ### Changed
 
