@@ -12,10 +12,15 @@
 
 * Modified Ghost Prefab Colors (09/11/2024)
 * Modified Luigi Prefab Import (11/11/2024)
+* Modified LuigiAgent to match Ghost/Portrait model logic (11/11/2024) 
+* Modified MansionModel to match Ghost/Portrait diccionary logic (11/11/2024)
 
 ### Deprecated
 
 ### Removed
+
+* Removed PortraitAgent (11/11/2024)
+* Removed GhostAgent (11/11/2024)
 
 ### Fixed
 
@@ -37,7 +42,7 @@
 ### Changed
 
 * Changed libraries importation (30/10/2024)
-* Added funcitionalities to LuigiAgent,GreenGhostAgent,RedGhostAgent and MansionModel(04/11/2024)
+* Added funcitionalities to LuigiAgent, GreenGhostAgent,RedGhostAgent and MansionModel(04/11/2024)
 * Added functionalities to PortraitAgent(04/11/2024)
 * Changed Luigi Model (04/11/2024)
 * Added conditions to only absorb red ghosts (04/11/2024)
@@ -53,6 +58,6 @@
 
 * Changed artefact to portrait (04/11/2024)
 * Fixed agent declaration (04/11/2024)
-* Fixed called to artefact instead of portrait (04/11/2024)
+* Fixed call to artefact instead of portrait (04/11/2024)
 
 ### Security
