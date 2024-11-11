@@ -8,12 +8,13 @@
 * Added Boo Prefab (09/11/2024)
 * Merge branch develop to Pre-release-0.0.1 (09/11/2024)
 * Added initialization of model for test purposes (11/11/2024)
+* Added Portrait prefab (11/11/2024)
 
 ### Changed
 
 * Modified Ghost Prefab Colors (09/11/2024)
 * Modified Luigi Prefab Import (11/11/2024)
-* Modified LuigiAgent to match Ghost/Portrait model logic (11/11/2024) 
+* Modified LuigiAgent to match Ghost/Portrait model logic (11/11/2024)
 * Modified MansionModel to match Ghost/Portrait diccionary logic (11/11/2024)
 
 ### Deprecated
