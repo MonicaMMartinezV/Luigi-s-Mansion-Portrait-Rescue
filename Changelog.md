@@ -17,6 +17,8 @@
 * Modified Luigi Prefab Import (11/11/2024)
 * Modified LuigiAgent to match Ghost/Portrait model logic (11/11/2024)
 * Modified MansionModel to match Ghost/Portrait diccionary logic (11/11/2024)
+* Modified LuigiAgent to save points and open doors (19/11/2024)
+* Modified LuigiAgent to prioritize saving portrait (19/11/2024)
 
 ### Deprecated
 
