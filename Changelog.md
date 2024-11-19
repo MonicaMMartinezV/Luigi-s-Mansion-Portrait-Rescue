@@ -13,7 +13,7 @@
 * Added Layout TXT File (19/11/2024)
 * Added Door and Wall Prefab (19/11/2024)
 * Added and Commented Funtion Grid (19/11/2024)
-* Added Funtion to Receive the File (19/11/2024)
+* Added Function to Receive the File (19/11/2024)
 * Added Layout TXT File with Notes (19/11/2024)
 
 ### Changed
@@ -39,6 +39,7 @@
 ### Fixed
 
 * Fixed Luigi Agent variables (09/11/2024)
+* Fixed process_txt function (19/11/2024)
 
 ### Security
 
