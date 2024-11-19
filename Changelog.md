@@ -28,6 +28,7 @@
 * Modify Grid Funtion to Show Door and Walls (19/11/2024)
 * Modify Txt Function (19/11/2024)
 * Modify Name Files Project (19/11/2024)
+* Modified references to ghosts/portraits to fit multigrid structure (19/11/2024)
 
 ### Deprecated
 
@@ -40,6 +41,7 @@
 
 * Fixed Luigi Agent variables (09/11/2024)
 * Fixed process_txt function (19/11/2024)
+* Fixed reference to name of txt file in process_txt function (19/11/2024) 
 
 ### Security
 
