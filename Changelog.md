@@ -56,6 +56,7 @@
 * Moved ghosts and portraits to MansionModel (05/11/2024)
 * Added new libraries (9/11/2024)
 * Added commented functionality libraries (11/9/2024)
+* Added commented funtion grid (19/11/2024)
 
 ### Deprecated
 
@@ -66,5 +67,6 @@
 * Changed artefact to portrait (04/11/2024)
 * Fixed agent declaration (04/11/2024)
 * Fixed call to artefact instead of portrait (04/11/2024)
+* Fixed grid funtion (19/11/2024)
 
 ### Security
