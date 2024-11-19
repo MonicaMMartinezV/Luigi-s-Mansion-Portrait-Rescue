@@ -12,6 +12,7 @@
 * Added Portrait Iterations (11/11/2024)
 * Added Layout TXT File (19/11/2024)
 * Added Door and Wall Prefab (19/11/2024)
+* Added commented funtion grid (19/11/2024)
 
 ### Changed
 
@@ -22,6 +23,7 @@
 * Modified LuigiAgent to save points and open doors (19/11/2024)
 * Modified LuigiAgent to prioritize saving portrait (19/11/2024)
 * Moved LuigiAgent to Portrait_Rescue file (19/11/2024)
+* Modify grid funtion to show door and walls (19/11/2024)
 
 ### Deprecated
 
@@ -57,7 +59,6 @@
 * Moved ghosts and portraits to MansionModel (05/11/2024)
 * Added new libraries (9/11/2024)
 * Added commented functionality libraries (11/9/2024)
-* Added commented funtion grid (19/11/2024)
 
 ### Deprecated
 
@@ -68,6 +69,5 @@
 * Changed artefact to portrait (04/11/2024)
 * Fixed agent declaration (04/11/2024)
 * Fixed call to artefact instead of portrait (04/11/2024)
-* Fixed grid funtion (19/11/2024)
 
 ### Security
