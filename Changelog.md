@@ -21,6 +21,7 @@
 * Modified MansionModel to match Ghost/Portrait diccionary logic (11/11/2024)
 * Modified LuigiAgent to save points and open doors (19/11/2024)
 * Modified LuigiAgent to prioritize saving portrait (19/11/2024)
+* Moved LuigiAgent to Portrait_Rescue file (19/11/2024)
 
 ### Deprecated
 
