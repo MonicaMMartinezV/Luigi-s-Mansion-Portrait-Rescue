@@ -10,6 +10,7 @@
 * Added initialization of model for test purposes (11/11/2024)
 * Added Portrait prefab (11/11/2024)
 * Added Portrait Iterations (11/11/2024)
+* Added Layout TXT File (19/11/2024)
 
 ### Changed
 
