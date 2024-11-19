@@ -12,8 +12,9 @@
 * Added Portrait Iterations (11/11/2024)
 * Added Layout TXT File (19/11/2024)
 * Added Door and Wall Prefab (19/11/2024)
-* Added commented funtion grid (19/11/2024)
-* Added funtion to receive the file (19/11/2024)
+* Added and Commented Funtion Grid (19/11/2024)
+* Added Funtion to Receive the File (19/11/2024)
+* Added Layout TXT File with Notes (19/11/2024)
 
 ### Changed
 
@@ -24,8 +25,9 @@
 * Modified LuigiAgent to save points and open doors (19/11/2024)
 * Modified LuigiAgent to prioritize saving portrait (19/11/2024)
 * Moved LuigiAgent to Portrait_Rescue file (19/11/2024)
-* Modify grid funtion to show door and walls (19/11/2024)
-* Modify procesar_txt function (19/11/2024)
+* Modify Grid Funtion to Show Door and Walls (19/11/2024)
+* Modify Txt Function (19/11/2024)
+* Modify Name Files Project (19/11/2024)
 
 ### Deprecated
 
