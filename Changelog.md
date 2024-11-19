@@ -25,6 +25,7 @@
 * Modified LuigiAgent to prioritize saving portrait (19/11/2024)
 * Moved LuigiAgent to Portrait_Rescue file (19/11/2024)
 * Modify grid funtion to show door and walls (19/11/2024)
+* Modify procesar_txt function (19/11/2024)
 
 ### Deprecated
 
