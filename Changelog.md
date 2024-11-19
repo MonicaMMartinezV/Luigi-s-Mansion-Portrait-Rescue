@@ -13,6 +13,7 @@
 * Added Layout TXT File (19/11/2024)
 * Added Door and Wall Prefab (19/11/2024)
 * Added commented funtion grid (19/11/2024)
+* Added funtion to receive the file (19/11/2024)
 
 ### Changed
 
