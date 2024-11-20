@@ -32,16 +32,13 @@
 
 ### Deprecated
 
-### Removed
-
-* Removed PortraitAgent (11/11/2024)
-* Removed GhostAgent (11/11/2024)
+* Restarted Model and Agent (20/11/2024)
 
 ### Fixed
 
 * Fixed Luigi Agent variables (09/11/2024)
 * Fixed process_txt function (19/11/2024)
-* Fixed reference to name of txt file in process_txt function (19/11/2024) 
+* Fixed reference to name of txt file in process_txt function (19/11/2024)
 
 ### Security
 
