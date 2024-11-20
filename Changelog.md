@@ -21,6 +21,7 @@
 * Added funtionalities to model and agent (20/11/2024)
 * Added new funtionalities in model (20/11/2024)
 * Added new multigrid, process file and funtionalities model (20/11/2024)
+* Added server class and funtionality (20/11/2024)
 
 ### Changed
 
