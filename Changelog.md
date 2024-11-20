@@ -15,6 +15,12 @@
 * Added and Commented Funtion Grid (19/11/2024)
 * Added Function to Receive the File (19/11/2024)
 * Added Layout TXT File with Notes (19/11/2024)
+* Added new file rescuePortrait (20/11/2024)
+* Added new model and agent
+* Added basic funtionalities to model and agent (20/11/2024)
+* Added funtionalities to model and agent (20/11/2024)
+* Added new funtionalities in model (20/11/2024)
+* Added new multigrid, process file and funtionalities model (20/11/2024)
 
 ### Changed
 
