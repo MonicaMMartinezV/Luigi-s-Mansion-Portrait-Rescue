@@ -9,8 +9,7 @@ public class APIConnection : MonoBehaviour
     [Header("Prefabs")]
     public GameObject floorPrefab; // Prefab del suelo
     public GameObject ghostPrefab; // Prefab para las víctimas
-    public GameObject victimPrefab; // Prefab para las víctimas
-    public GameObject fakeAlarmPrefab; // Prefab para las falsas alarmas
+    public GameObject portraitPrefab; // Prefab para las falsas alarmas
 
     [Header("API Config")]
     public string apiUrl = "http://127.0.0.1:5000/get_board"; // Cambia la URL según tu servidor
@@ -83,6 +82,8 @@ public class APIConnection : MonoBehaviour
         // Ahora que las paredes están configuradas, podemos trabajar con las puertas
         InstanciarPuertas(data);
         InstanciarFantasmas(data);
+        InstanciarFalseAlarms(data);
+        InstanciarVictims(data);
     }
 
     void ActivarDesactivarParedes(GameObject floor, WallData wall)
@@ -223,18 +224,22 @@ public class APIConnection : MonoBehaviour
                     Vector3 cellPosition = cell.transform.position;
 
                     // Aplicar la transformación personalizada para posicionar correctamente el fantasma
-                    float offsetX = 6.919830f; // Desplazamiento en X para compensar rotación
-                    float offsetZ = 46.470261f; // Desplazamiento en Z para compensar rotación
-                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y, cellPosition.z + offsetZ);
+                    float offsetX = 2.019836f; // Desplazamiento en X
+                    float offsetY = 22.2000008f; // Desplazamiento en Y
+                    float offsetZ = -3.7f; // Desplazamiento en Z
+                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
 
                     // Instanciar el prefab del fantasma
                     GameObject ghost = Instantiate(ghostPrefab, adjustedPosition, Quaternion.identity);
 
-                    // Ajustar la rotación del fantasma a -180 grados en Y
-                    ghost.transform.rotation = Quaternion.Euler(0, -180, 0);
+                    // Ajustar el tag al instanciar el objeto
+                    ghost.tag = "Ghost";
 
                     // Nombrar el fantasma para facilitar su identificación
                     ghost.name = $"Ghost ({x + 1},{y + 1})";
+
+                    // Ajustar la rotación del fantasma a -180 grados en Y si es necesario
+                    ghost.transform.rotation = Quaternion.Euler(ghost.transform.rotation.eulerAngles.x, -180, ghost.transform.rotation.eulerAngles.z);
                 }
                 else
                 {
@@ -247,6 +252,104 @@ public class APIConnection : MonoBehaviour
             }
         }
     }
+
+
+    void InstanciarFalseAlarms(BoardData data)
+    {
+        foreach (var fake in data.fake_alarms)
+        {
+            // Ajustar las coordenadas para comenzar desde 0
+            int x = fake.col - 1;
+            int y = fake.row - 1;
+
+            // Verificar que las coordenadas estén dentro del rango válido
+            if (x >= 0 && x < data.width && y >= 0 && y < data.height)
+            {
+                // Encontrar la celda correspondiente
+                GameObject cell = GameObject.Find($"Floor ({x + 1},{y + 1})");
+
+                if (cell != null)
+                {
+                    Debug.Log($"Instanciando fake alarm en la celda: ({x + 1}, {y + 1})");
+
+                    // Obtener la posición de la celda
+                    Vector3 cellPosition = cell.transform.position;
+
+                    // Aplicar la transformación personalizada para posicionar correctamente el retrato
+                    float offsetX = -15.34008f; // Desplazamiento en X
+                    float offsetY = 84.5999985f; // Desplazamiento en Y
+                    float offsetZ = 21.7f; // Desplazamiento en Z
+                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
+                    // Instanciar el prefab del retrato
+                    GameObject portrait = Instantiate(portraitPrefab, adjustedPosition, Quaternion.Euler(-90, 0, -26.247f));
+
+                    // Ajustar el tag al instanciar el objeto
+                    portrait.tag = "FalseAlarm";
+
+                    // Nombrar el retrato para facilitar su identificación
+                    portrait.name = $"Portrait ({x + 1},{y + 1})";
+                }
+                else
+                {
+                    Debug.LogWarning($"No se encontró la celda en: ({x + 1}, {y + 1})");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"Coordenadas fuera de rango: ({fake.row}, {fake.col})");
+            }
+        }
+    }
+
+    void InstanciarVictims(BoardData data)
+    {
+        foreach (var victim in data.victims)
+        {
+            // Ajustar las coordenadas para comenzar desde 0
+            int x = victim.col - 1;
+            int y = victim.row - 1;
+
+            // Verificar que las coordenadas estén dentro del rango válido
+            if (x >= 0 && x < data.width && y >= 0 && y < data.height)
+            {
+                // Encontrar la celda correspondiente
+                GameObject cell = GameObject.Find($"Floor ({x + 1},{y + 1})");
+
+                if (cell != null)
+                {
+                    Debug.Log($"Instanciando fake alarm en la celda: ({x + 1}, {y + 1})");
+
+                    // Obtener la posición de la celda
+                    Vector3 cellPosition = cell.transform.position;
+
+                    // Aplicar la transformación personalizada para posicionar correctamente el retrato
+                    float offsetX = -15.34008f; // Desplazamiento en X
+                    float offsetY = 84.5999985f; // Desplazamiento en Y
+                    float offsetZ = 21.7f; // Desplazamiento en Z
+                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
+                    // Instanciar el prefab del retrato
+                    GameObject portrait = Instantiate(portraitPrefab, adjustedPosition, Quaternion.Euler(-90, 0, -26.247f));
+
+                    // Ajustar el tag al instanciar el objeto
+                    portrait.tag = "Victim";
+
+                    // Nombrar el retrato para facilitar su identificación
+                    portrait.name = $"Portrait ({x + 1},{y + 1})";
+                }
+                else
+                {
+                    Debug.LogWarning($"No se encontró la celda en: ({x + 1}, {y + 1})");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"Coordenadas fuera de rango: ({victim.row}, {victim.col})");
+            }
+        }
+    }
+
 
 }
 

@@ -25,6 +25,7 @@
 * Added web client file (20/11/2024)
 * Added functionality to build board on unity (20/11/2024)
 * Added functionality to place initial ghosts on unity (20/11/2024)
+* Added functionality to place false alarms and victims on unity (21//11/2024)
 
 ### Changed
 
