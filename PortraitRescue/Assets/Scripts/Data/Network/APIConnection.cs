@@ -60,31 +60,64 @@ public class APIConnection : MonoBehaviour
             return;
         }
 
+        // Dimensiones extendidas para incluir la hilera y columna extra
+        int extendedWidth = data.width + 2;
+        int extendedHeight = data.height + 2;
+
         float distanciaXReal = distanciaX - floorWidth;
 
         // Instanciar el tablero (suelo y paredes)
-        for (int y = 0; y < data.height; y++)
+        for (int y = 0; y < extendedHeight; y++)
         {
-            for (int x = 0; x < data.width; x++)
+            for (int x = 0; x < extendedWidth; x++)
             {
-                Vector3 floorPosition = new Vector3(x * distanciaXReal, 0, (data.height - 1 - y) * distanciaY);
+                Vector3 floorPosition = new Vector3(x * distanciaXReal, 0, (extendedHeight - 1 - y) * distanciaY);
                 GameObject floor = Instantiate(floorPrefab, floorPosition, Quaternion.Euler(90f, 0f, 0f));
-                floor.name = $"Floor ({x + 1},{y + 1})"; // Para que empiece en (1,0) visualmente
+                floor.name = $"Floor ({x},{y})";
 
-                // Obtener las paredes del JSON para esta celda
-                WallData wall = data.walls[y][x];
+                // Celdas dentro del rango original (8x6) tienen paredes y datos del tablero
+                if (x > 0 && x <= data.width && y > 0 && y <= data.height)
+                {
+                    // Coordenadas ajustadas para acceder al array original (base 0)
+                    int originalX = x - 1;
+                    int originalY = y - 1;
 
-                // Activar/desactivar las paredes de acuerdo a los datos
-                ActivarDesactivarParedes(floor, wall);
+                    // Obtener las paredes del JSON para esta celda
+                    WallData wall = data.walls[originalY][originalX];
+
+                    // Activar/desactivar las paredes de acuerdo a los datos
+                    ActivarDesactivarParedes(floor, wall);
+                }
+                else
+                {
+                    // Celdas adicionales no tienen paredes
+                    DesactivarTodasLasParedes(floor);
+                }
             }
         }
 
-        // Ahora que las paredes están configuradas, podemos trabajar con las puertas
+        // Trabajar con los datos originales para puertas, fantasmas y puntos de interés
         InstanciarPuertas(data);
         InstanciarFantasmas(data);
         InstanciarFalseAlarms(data);
         InstanciarVictims(data);
     }
+
+    void DesactivarTodasLasParedes(GameObject floor)
+    {
+        // Buscar y desactivar todas las paredes en una celda
+        Transform upperWall = floor.transform.Find("UpperWall");
+        Transform leftWall = floor.transform.Find("LeftWall");
+        Transform rightWall = floor.transform.Find("RightWall");
+        Transform bottomWall = floor.transform.Find("BottomWall");
+
+        if (upperWall != null) upperWall.gameObject.SetActive(false);
+        if (leftWall != null) leftWall.gameObject.SetActive(false);
+        if (rightWall != null) rightWall.gameObject.SetActive(false);
+        if (bottomWall != null) bottomWall.gameObject.SetActive(false);
+    }
+
+
 
     void ActivarDesactivarParedes(GameObject floor, WallData wall)
     {

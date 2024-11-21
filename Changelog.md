@@ -42,6 +42,7 @@
 * Modified references to ghosts/portraits to fit multigrid structure (19/11/2024)
 * Modify the mansion model (21/11/2024)
 * Modify rotation of the ghost prefab (21/11/2024)
+* Modify grid height and width (21/11/2024)
 
 ### Deprecated
 
