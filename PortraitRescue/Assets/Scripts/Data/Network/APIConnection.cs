@@ -63,14 +63,14 @@ public class APIConnection : MonoBehaviour
 
         float distanciaXReal = distanciaX - floorWidth;
 
+        // Instanciar el tablero (suelo y paredes)
         for (int y = 0; y < data.height; y++)
         {
             for (int x = 0; x < data.width; x++)
             {
-                // Iniciar en la esquina superior izquierda (1, 0)
                 Vector3 floorPosition = new Vector3(x * distanciaXReal, 0, (data.height - 1 - y) * distanciaY);
                 GameObject floor = Instantiate(floorPrefab, floorPosition, Quaternion.Euler(90f, 0f, 0f));
-                floor.name = $"Floor ({x + 1},{y})"; // Para que empiece en (1,0) visualmente
+                floor.name = $"Floor ({x + 1},{y + 1})"; // Para que empiece en (1,0) visualmente
 
                 // Obtener las paredes del JSON para esta celda
                 WallData wall = data.walls[y][x];
@@ -80,7 +80,8 @@ public class APIConnection : MonoBehaviour
             }
         }
 
-        InstanciarObjetosInteres(data, distanciaXReal, distanciaY);
+        // Ahora que las paredes están configuradas, podemos trabajar con las puertas
+        InstanciarPuertas(data);
     }
 
     void ActivarDesactivarParedes(GameObject floor, WallData wall)
@@ -91,36 +92,111 @@ public class APIConnection : MonoBehaviour
         Transform rightWall = floor.transform.Find("RightWall");
         Transform bottomWall = floor.transform.Find("BottomWall");
 
-        // Activar o desactivar los objetos según los valores de las paredes
+        // Activar o desactivar las paredes según los valores de las paredes
         if (upperWall != null) upperWall.gameObject.SetActive(wall.top == 1);
         if (leftWall != null) leftWall.gameObject.SetActive(wall.left == 1);
         if (rightWall != null) rightWall.gameObject.SetActive(wall.right == 1);
         if (bottomWall != null) bottomWall.gameObject.SetActive(wall.bottom == 1);
     }
 
-    void InstanciarObjetosInteres(BoardData data, float distanciaXReal, float distanciaY)
+    void InstanciarPuertas(BoardData data)
     {
-        // Instanciar las víctimas
-        foreach (var victim in data.victims)
+        // Desactivar todas las puertas por defecto
+        foreach (var floor in GameObject.FindGameObjectsWithTag("Floor"))
         {
-            Vector3 victimPosition = new Vector3(victim.col * distanciaXReal, 0, (data.height - 1 - victim.row) * distanciaY);
-            Instantiate(victimPrefab, victimPosition, Quaternion.identity);
+            Transform[] doors = floor.GetComponentsInChildren<Transform>();
+            foreach (var door in doors)
+            {
+                if (door.name.Contains("DoorWall"))
+                {
+                    door.gameObject.SetActive(false); // Desactivar todas las puertas
+                }
+            }
         }
 
-        // Instanciar falsas alarmas
-        foreach (var fakeAlarm in data.fake_alarms)
-        {
-            Vector3 fakeAlarmPosition = new Vector3(fakeAlarm.col * distanciaXReal, 0, (data.height - 1 - fakeAlarm.row) * distanciaY);
-            Instantiate(fakeAlarmPrefab, fakeAlarmPosition, Quaternion.identity);
-        }
-
-        // Instanciar puertas
+        // Instanciar puertas activas según los datos del JSON
         foreach (var door in data.doors)
         {
-            Vector3 doorPosition = new Vector3(door.c1 * distanciaXReal, 0, (data.height - 1 - door.r1) * distanciaY);
-            Instantiate(doorPrefab, doorPosition, Quaternion.identity);
+            // Coordenadas base 0 (ajustamos restando 1 a las coordenadas)
+            int x1 = door.c1 - 1;
+            int y1 = door.r1 - 1;
+            int x2 = door.c2 - 1;
+            int y2 = door.r2 - 1;
+
+            // Validar que las celdas son adyacentes
+            if ((Mathf.Abs(x1 - x2) + Mathf.Abs(y1 - y2)) != 1)
+            {
+                Debug.LogWarning($"Puerta inválida entre celdas no adyacentes: ({door.c1},{door.r1}) y ({door.c2},{door.r2})");
+                continue;
+            }
+
+            // Encontrar las celdas afectadas
+            GameObject cell1 = GameObject.Find($"Floor ({x1 + 1},{y1 + 1})"); // Sumamos 1 para visualizar correctamente las celdas
+            GameObject cell2 = GameObject.Find($"Floor ({x2 + 1},{y2 + 1})");
+
+            // Imprimir el nombre del objeto de las celdas conectadas
+            if (cell1 != null && cell2 != null)
+            {
+                Debug.Log($"Puerta conectada entre los objetos: {cell1.name} y {cell2.name}");
+
+                // Activar/desactivar paredes según la puerta
+                if (y1 == y2 && Mathf.Abs(x1 - x2) == 1) // Son celdas adyacentes horizontalmente (misma fila)
+                {
+                    if (x1 < x2) // Si cell1 está a la izquierda de cell2
+                    {
+                        // Activar la pared RightDoorWall en cell1 (izquierda) y desactivar RightWall en cell1
+                        Transform rightdoorWall = cell1.transform.Find("RightDoorWall");
+                        Transform rightWall = cell1.transform.Find("RightWall");
+                        Transform leftWall = cell2.transform.Find("LeftWall");
+
+                        if (rightdoorWall != null) rightdoorWall.gameObject.SetActive(true);
+                        if (rightWall != null) rightWall.gameObject.SetActive(false);
+                        if (leftWall != null) leftWall.gameObject.SetActive(false);
+                    }
+                    else // Si cell2 está a la izquierda de cell1
+                    {
+                        // Activar la pared RightDoorWall en cell2 (izquierda) y desactivar RightWall en cell2
+                        Transform rightdoorWall = cell2.transform.Find("RightDoorWall");
+                        Transform rightWall = cell2.transform.Find("RightWall");
+                        Transform leftWall = cell1.transform.Find("LeftWall");
+
+                        if (rightdoorWall != null) rightdoorWall.gameObject.SetActive(true);
+                        if (rightWall != null) rightWall.gameObject.SetActive(false);
+                        if (leftWall != null) leftWall.gameObject.SetActive(false);
+                    }
+                }
+                else if (x1 == x2 && Mathf.Abs(y1 - y2) == 1) // Son celdas adyacentes verticalmente (misma columna)
+                {
+                    // Si la puerta es entre celdas adyacentes verticalmente
+                    if (y1 < y2) // Si cell2 está abajo de cell1 (y2 > y1)
+                    {
+                        // Activar la pared BottomDoorWall en cell1 (arriba) y desactivar BottomWall en cell1
+                        Transform bottomdoorWall = cell1.transform.Find("BottomDoorWall");
+                        Transform bottomWall = cell1.transform.Find("BottomWall");
+                        Transform upperWall = cell2.transform.Find("UpperWall");
+
+                        if (bottomdoorWall != null) bottomdoorWall.gameObject.SetActive(true);
+                        if (bottomWall != null) bottomWall.gameObject.SetActive(false);
+                        if (upperWall != null) upperWall.gameObject.SetActive(false);
+                    }
+                    else // Si cell1 está abajo de cell2 (y1 > y2)
+                    {
+                        // Activar la pared BottomDoorWall en cell2 (arriba) y desactivar BottomWall en cell2
+                        Transform bottomdoorWall = cell2.transform.Find("BottomDoorWall");
+                        Transform bottomWall = cell2.transform.Find("BottomWall");
+                        Transform upperWall = cell1.transform.Find("UpperWall");
+
+                        if (bottomdoorWall != null) bottomdoorWall.gameObject.SetActive(true);
+                        if (bottomWall != null) bottomWall.gameObject.SetActive(false);
+                        if (upperWall != null) upperWall.gameObject.SetActive(false);
+                    }
+                }
+            }
         }
     }
+
+
+
 }
 
 [System.Serializable]
@@ -141,8 +217,8 @@ public class WallData
 {
     public int top;
     public int left;
-    public int bottom;
     public int right;
+    public int bottom;
 }
 
 [System.Serializable]

@@ -23,6 +23,7 @@
 * Added new multigrid, process file and funtionalities model (20/11/2024)
 * Added server class and funtionality (20/11/2024)
 * Added web client file (20/11/2024)
+* Added functionality to build board on unity (20/11/2024)
 
 ### Changed
 
