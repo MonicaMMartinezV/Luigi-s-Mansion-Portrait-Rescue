@@ -485,6 +485,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6853325818425243691}
+  - component: {fileID: 317498314989888682}
   m_Layer: 0
   m_Name: Boo
   m_TagString: Untagged
@@ -514,6 +515,20 @@ Transform:
   - {fileID: 2054834375896981892}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -182.831, z: 0}
+--- !u!114 &317498314989888682
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4690558405127934314}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f9c348ad7d096845840b7f1bb593409, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  amplitude: 1
+  frequency: 7
 --- !u!1 &5313084217939475714
 GameObject:
   m_ObjectHideFlags: 0
