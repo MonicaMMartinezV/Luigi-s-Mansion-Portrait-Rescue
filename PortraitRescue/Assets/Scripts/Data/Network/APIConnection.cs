@@ -8,9 +8,9 @@ public class APIConnection : MonoBehaviour
 {
     [Header("Prefabs")]
     public GameObject floorPrefab; // Prefab del suelo
+    public GameObject ghostPrefab; // Prefab para las víctimas
     public GameObject victimPrefab; // Prefab para las víctimas
     public GameObject fakeAlarmPrefab; // Prefab para las falsas alarmas
-    public GameObject doorPrefab; // Prefab para las puertas
 
     [Header("API Config")]
     public string apiUrl = "http://127.0.0.1:5000/get_board"; // Cambia la URL según tu servidor
@@ -203,18 +203,6 @@ public class APIConnection : MonoBehaviour
 
     void InstanciarFantasmas(BoardData data)
     {
-        foreach (var floor in GameObject.FindGameObjectsWithTag("Floor"))
-        {
-            Transform[] doors = floor.GetComponentsInChildren<Transform>();
-            foreach (var door in doors)
-            {
-                if (door.name.Contains("GreenGhost"))
-                {
-                    door.gameObject.SetActive(false); // Desactivar todas las puertas
-                }
-            }
-        }
-
         foreach (var fire in data.fires)
         {
             // Ajustar las coordenadas para comenzar desde 0
@@ -229,27 +217,31 @@ public class APIConnection : MonoBehaviour
 
                 if (cell != null)
                 {
-                    Debug.Log($"Instanciando incendio en: {x + 1}, {y + 1}");
+                    Debug.Log($"Instanciando fantasma en la celda: ({x + 1}, {y + 1})");
 
-                    // Activar el objeto del incendio
-                    Transform ghost = cell.transform.Find("GreenGhost");
-                    if (ghost != null) 
-                    {
-                        ghost.gameObject.SetActive(true);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"No se encontró el fantasma en la celda: {cell.name}");
-                    }
+                    // Obtener la posición de la celda
+                    Vector3 cellPosition = cell.transform.position;
+
+                    // Aplicar la transformación personalizada para centrar el fantasma
+                    float offsetX = -11.480164f; // Desplazamiento en X
+                    float offsetZ = -66f;       // Desplazamiento en Z
+                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y, cellPosition.z + offsetZ);
+
+                    GameObject ghost = Instantiate(ghostPrefab, adjustedPosition, Quaternion.identity);
+
+                    ghost.transform.Rotate(0, 180, 0, Space.Self);
+
+                    // Nombrar el fantasma para facilitar su identificación
+                    ghost.name = $"Ghost ({x + 1},{y + 1})";
                 }
                 else
                 {
-                    Debug.LogWarning($"No se encontró la celda en: {x + 1},{y + 1}");
+                    Debug.LogWarning($"No se encontró la celda en: ({x + 1}, {y + 1})");
                 }
             }
             else
             {
-                Debug.LogWarning($"Coordenadas fuera de rango: {fire.row},{fire.col}");
+                Debug.LogWarning($"Coordenadas fuera de rango: ({fire.row}, {fire.col})");
             }
         }
     }
