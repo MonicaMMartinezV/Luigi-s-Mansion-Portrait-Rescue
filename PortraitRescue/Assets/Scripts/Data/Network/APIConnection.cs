@@ -103,104 +103,109 @@ public class APIConnection : MonoBehaviour
 
     void InstanciarPuertas(BoardData data)
     {
-        // Desactivar todas las puertas por defecto
+        // Desactivar todas las puertas y entradas por defecto
         foreach (var floor in GameObject.FindGameObjectsWithTag("Floor"))
         {
-            Transform[] doors = floor.GetComponentsInChildren<Transform>();
-            foreach (var door in doors)
+            foreach (Transform child in floor.transform)
             {
-                if (door.name.Contains("DoorWall"))
+                if (child.name.Contains("DoorWall") || child.name.Contains("Entrance"))
                 {
-                    door.gameObject.SetActive(false); // Desactivar todas las puertas
-                }
-
-                if (door.name.Contains("Entrance"))
-                {
-                    door.gameObject.SetActive(false); // Desactivar todas las puertas
+                    child.gameObject.SetActive(false); // Desactivar todas las puertas y entradas
                 }
             }
         }
 
-        // Instanciar puertas activas según los datos del JSON
+        // Activar puertas según los datos del JSON
         foreach (var door in data.doors)
         {
-            // Coordenadas base 0 (ajustamos restando 1 a las coordenadas)
+            // Coordenadas base 0
             int x1 = door.c1 - 1;
             int y1 = door.r1 - 1;
             int x2 = door.c2 - 1;
             int y2 = door.r2 - 1;
 
             // Validar que las celdas son adyacentes
-            if ((Mathf.Abs(x1 - x2) + Mathf.Abs(y1 - y2)) != 1)
+            if (Mathf.Abs(x1 - x2) + Mathf.Abs(y1 - y2) != 1)
             {
                 Debug.LogWarning($"Puerta inválida entre celdas no adyacentes: ({door.c1},{door.r1}) y ({door.c2},{door.r2})");
                 continue;
             }
 
-            // Encontrar las celdas afectadas
-            GameObject cell1 = GameObject.Find($"Floor ({x1 + 1},{y1 + 1})"); // Sumamos 1 para visualizar correctamente las celdas
+            // Obtener las celdas afectadas
+            GameObject cell1 = GameObject.Find($"Floor ({x1 + 1},{y1 + 1})");
             GameObject cell2 = GameObject.Find($"Floor ({x2 + 1},{y2 + 1})");
 
-            // Imprimir el nombre del objeto de las celdas conectadas
-            if (cell1 != null && cell2 != null)
+            if (cell1 == null || cell2 == null)
             {
-                Debug.Log($"Puerta conectada entre los objetos: {cell1.name} y {cell2.name}");
+                Debug.LogWarning($"No se encontraron celdas para la puerta: ({door.c1},{door.r1}) - ({door.c2},{door.r2})");
+                continue;
+            }
 
-                // Activar/desactivar paredes según la puerta
-                if (y1 == y2 && Mathf.Abs(x1 - x2) == 1) // Son celdas adyacentes horizontalmente (misma fila)
-                {
-                    if (x1 < x2) // Si cell1 está a la izquierda de cell2
-                    {
-                        // Activar la pared RightDoorWall en cell1 (izquierda) y desactivar RightWall en cell1
-                        Transform rightdoorWall = cell1.transform.Find("RightDoorWall");
-                        Transform rightWall = cell1.transform.Find("RightWall");
-                        Transform leftWall = cell2.transform.Find("LeftWall");
-
-                        if (rightdoorWall != null) rightdoorWall.gameObject.SetActive(true);
-                        if (rightWall != null) rightWall.gameObject.SetActive(false);
-                        if (leftWall != null) leftWall.gameObject.SetActive(false);
-                    }
-                    else // Si cell2 está a la izquierda de cell1
-                    {
-                        // Activar la pared RightDoorWall en cell2 (izquierda) y desactivar RightWall en cell2
-                        Transform rightdoorWall = cell2.transform.Find("RightDoorWall");
-                        Transform rightWall = cell2.transform.Find("RightWall");
-                        Transform leftWall = cell1.transform.Find("LeftWall");
-
-                        if (rightdoorWall != null) rightdoorWall.gameObject.SetActive(true);
-                        if (rightWall != null) rightWall.gameObject.SetActive(false);
-                        if (leftWall != null) leftWall.gameObject.SetActive(false);
-                    }
-                }
-                else if (x1 == x2 && Mathf.Abs(y1 - y2) == 1) // Son celdas adyacentes verticalmente (misma columna)
-                {
-                    // Si la puerta es entre celdas adyacentes verticalmente
-                    if (y1 < y2) // Si cell2 está abajo de cell1 (y2 > y1)
-                    {
-                        // Activar la pared BottomDoorWall en cell1 (arriba) y desactivar BottomWall en cell1
-                        Transform bottomdoorWall = cell1.transform.Find("BottomDoorWall");
-                        Transform bottomWall = cell1.transform.Find("BottomWall");
-                        Transform upperWall = cell2.transform.Find("UpperWall");
-
-                        if (bottomdoorWall != null) bottomdoorWall.gameObject.SetActive(true);
-                        if (bottomWall != null) bottomWall.gameObject.SetActive(false);
-                        if (upperWall != null) upperWall.gameObject.SetActive(false);
-                    }
-                    else // Si cell1 está abajo de cell2 (y1 > y2)
-                    {
-                        // Activar la pared BottomDoorWall en cell2 (arriba) y desactivar BottomWall en cell2
-                        Transform bottomdoorWall = cell2.transform.Find("BottomDoorWall");
-                        Transform bottomWall = cell2.transform.Find("BottomWall");
-                        Transform upperWall = cell1.transform.Find("UpperWall");
-
-                        if (bottomdoorWall != null) bottomdoorWall.gameObject.SetActive(true);
-                        if (bottomWall != null) bottomWall.gameObject.SetActive(false);
-                        if (upperWall != null) upperWall.gameObject.SetActive(false);
-                    }
-                }
+            // Activar las puertas entre las celdas
+            if (y1 == y2) // Mismo renglón (horizontal)
+            {
+                if (x1 < x2) // cell1 a la izquierda de cell2
+                    ActivarPuerta(cell1, "RightDoorWall", "RightWall", cell2, "LeftWall");
+                else // cell2 a la izquierda de cell1
+                    ActivarPuerta(cell2, "RightDoorWall", "RightWall", cell1, "LeftWall");
+            }
+            else if (x1 == x2) // Misma columna (vertical)
+            {
+                if (y1 < y2) // cell1 arriba de cell2
+                    ActivarPuerta(cell1, "BottomDoorWall", "BottomWall", cell2, "UpperWall");
+                else // cell2 arriba de cell1
+                    ActivarPuerta(cell2, "BottomDoorWall", "BottomWall", cell1, "UpperWall");
             }
         }
+
+        // Activar entradas según los datos del JSON
+        foreach (var entrance in data.entrances)
+        {
+            int x = entrance.col - 1;
+            int y = entrance.row - 1;
+
+            GameObject cell = GameObject.Find($"Floor ({x + 1},{y + 1})");
+            if (cell == null)
+            {
+                Debug.LogWarning($"No se encontró la celda para la entrada: ({entrance.col},{entrance.row})");
+                continue;
+            }
+
+            // Activar la entrada según la posición
+            if (y == 0)
+                ActivarEntrada(cell, "UpperEntrance", "UpperWall", "UpperDoorWall");
+            else if (x == 0)
+                ActivarEntrada(cell, "LeftEntrance", "LeftWall", "LeftDoorWall");
+            else if (y == data.height - 1)
+                ActivarEntrada(cell, "BottomEntrance", "BottomWall", "BottomDoorWall");
+            else if (x == data.width - 1)
+                ActivarEntrada(cell, "RightEntrance", "RightWall", "RightDoorWall");
+        }
     }
+
+    void ActivarPuerta(GameObject cell1, string puerta1, string pared1, GameObject cell2, string pared2)
+    {
+        // Activar la puerta en cell1 y desactivar paredes relevantes
+        Transform door1 = cell1.transform.Find(puerta1);
+        Transform wall1 = cell1.transform.Find(pared1);
+        Transform wall2 = cell2.transform.Find(pared2);
+
+        if (door1 != null) door1.gameObject.SetActive(true);
+        if (wall1 != null) wall1.gameObject.SetActive(false);
+        if (wall2 != null) wall2.gameObject.SetActive(false);
+    }
+
+    void ActivarEntrada(GameObject cell, string entrada, string pared, string puerta)
+    {
+        Transform entrance = cell.transform.Find(entrada);
+        Transform wall = cell.transform.Find(pared);
+        Transform doorWall = cell.transform.Find(puerta);
+
+        if (entrance != null) entrance.gameObject.SetActive(true);
+        if (wall != null) wall.gameObject.SetActive(false);
+        if (doorWall != null) doorWall.gameObject.SetActive(false);
+    }
+
 
     void InstanciarFantasmas(BoardData data)
     {
