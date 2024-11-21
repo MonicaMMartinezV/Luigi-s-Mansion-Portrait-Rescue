@@ -222,14 +222,16 @@ public class APIConnection : MonoBehaviour
                     // Obtener la posición de la celda
                     Vector3 cellPosition = cell.transform.position;
 
-                    // Aplicar la transformación personalizada para centrar el fantasma
-                    float offsetX = -11.480164f; // Desplazamiento en X
-                    float offsetZ = -66f;       // Desplazamiento en Z
+                    // Aplicar la transformación personalizada para posicionar correctamente el fantasma
+                    float offsetX = 6.919830f; // Desplazamiento en X para compensar rotación
+                    float offsetZ = 46.470261f; // Desplazamiento en Z para compensar rotación
                     Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y, cellPosition.z + offsetZ);
 
+                    // Instanciar el prefab del fantasma
                     GameObject ghost = Instantiate(ghostPrefab, adjustedPosition, Quaternion.identity);
 
-                    ghost.transform.Rotate(0, 180, 0, Space.Self);
+                    // Ajustar la rotación del fantasma a -180 grados en Y
+                    ghost.transform.rotation = Quaternion.Euler(0, -180, 0);
 
                     // Nombrar el fantasma para facilitar su identificación
                     ghost.name = $"Ghost ({x + 1},{y + 1})";
@@ -245,6 +247,7 @@ public class APIConnection : MonoBehaviour
             }
         }
     }
+
 }
 
 [System.Serializable]
