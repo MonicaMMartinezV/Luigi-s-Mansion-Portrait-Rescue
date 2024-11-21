@@ -82,6 +82,7 @@ public class APIConnection : MonoBehaviour
 
         // Ahora que las paredes están configuradas, podemos trabajar con las puertas
         InstanciarPuertas(data);
+        InstanciarFantasmas(data);
     }
 
     void ActivarDesactivarParedes(GameObject floor, WallData wall)
@@ -108,6 +109,11 @@ public class APIConnection : MonoBehaviour
             foreach (var door in doors)
             {
                 if (door.name.Contains("DoorWall"))
+                {
+                    door.gameObject.SetActive(false); // Desactivar todas las puertas
+                }
+
+                if (door.name.Contains("Entrance"))
                 {
                     door.gameObject.SetActive(false); // Desactivar todas las puertas
                 }
@@ -195,8 +201,58 @@ public class APIConnection : MonoBehaviour
         }
     }
 
+    void InstanciarFantasmas(BoardData data)
+    {
+        foreach (var floor in GameObject.FindGameObjectsWithTag("Floor"))
+        {
+            Transform[] doors = floor.GetComponentsInChildren<Transform>();
+            foreach (var door in doors)
+            {
+                if (door.name.Contains("GreenGhost"))
+                {
+                    door.gameObject.SetActive(false); // Desactivar todas las puertas
+                }
+            }
+        }
 
+        foreach (var fire in data.fires)
+        {
+            // Ajustar las coordenadas para comenzar desde 0
+            int x = fire.col - 1;
+            int y = fire.row - 1;
 
+            // Verificar que las coordenadas estén dentro del rango válido
+            if (x >= 0 && x < data.width && y >= 0 && y < data.height)
+            {
+                // Encontrar la celda correspondiente
+                GameObject cell = GameObject.Find($"Floor ({x + 1},{y + 1})");
+
+                if (cell != null)
+                {
+                    Debug.Log($"Instanciando incendio en: {x + 1}, {y + 1}");
+
+                    // Activar el objeto del incendio
+                    Transform ghost = cell.transform.Find("GreenGhost");
+                    if (ghost != null) 
+                    {
+                        ghost.gameObject.SetActive(true);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"No se encontró el fantasma en la celda: {cell.name}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"No se encontró la celda en: {x + 1},{y + 1}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"Coordenadas fuera de rango: {fire.row},{fire.col}");
+            }
+        }
+    }
 }
 
 [System.Serializable]
