@@ -9,8 +9,7 @@ public class APIConnection : MonoBehaviour
     [Header("Prefabs")]
     public GameObject floorPrefab; // Prefab del suelo
     public GameObject ghostPrefab; // Prefab para las víctimas
-    public GameObject victimPrefab; // Prefab para las víctimas
-    public GameObject fakeAlarmPrefab; // Prefab para las falsas alarmas
+    public GameObject portraitPrefab; // Prefab para las falsas alarmas
 
     [Header("API Config")]
     public string apiUrl = "http://127.0.0.1:5000/get_board"; // Cambia la URL según tu servidor
@@ -61,29 +60,64 @@ public class APIConnection : MonoBehaviour
             return;
         }
 
+        // Dimensiones extendidas para incluir la hilera y columna extra
+        int extendedWidth = data.width + 2;
+        int extendedHeight = data.height + 2;
+
         float distanciaXReal = distanciaX - floorWidth;
 
         // Instanciar el tablero (suelo y paredes)
-        for (int y = 0; y < data.height; y++)
+        for (int y = 0; y < extendedHeight; y++)
         {
-            for (int x = 0; x < data.width; x++)
+            for (int x = 0; x < extendedWidth; x++)
             {
-                Vector3 floorPosition = new Vector3(x * distanciaXReal, 0, (data.height - 1 - y) * distanciaY);
+                Vector3 floorPosition = new Vector3(x * distanciaXReal, 0, (extendedHeight - 1 - y) * distanciaY);
                 GameObject floor = Instantiate(floorPrefab, floorPosition, Quaternion.Euler(90f, 0f, 0f));
-                floor.name = $"Floor ({x + 1},{y + 1})"; // Para que empiece en (1,0) visualmente
+                floor.name = $"Floor ({x},{y})";
 
-                // Obtener las paredes del JSON para esta celda
-                WallData wall = data.walls[y][x];
+                // Celdas dentro del rango original (8x6) tienen paredes y datos del tablero
+                if (x > 0 && x <= data.width && y > 0 && y <= data.height)
+                {
+                    // Coordenadas ajustadas para acceder al array original (base 0)
+                    int originalX = x - 1;
+                    int originalY = y - 1;
 
-                // Activar/desactivar las paredes de acuerdo a los datos
-                ActivarDesactivarParedes(floor, wall);
+                    // Obtener las paredes del JSON para esta celda
+                    WallData wall = data.walls[originalY][originalX];
+
+                    // Activar/desactivar las paredes de acuerdo a los datos
+                    ActivarDesactivarParedes(floor, wall);
+                }
+                else
+                {
+                    // Celdas adicionales no tienen paredes
+                    DesactivarTodasLasParedes(floor);
+                }
             }
         }
 
-        // Ahora que las paredes están configuradas, podemos trabajar con las puertas
+        // Trabajar con los datos originales para puertas, fantasmas y puntos de interés
         InstanciarPuertas(data);
         InstanciarFantasmas(data);
+        InstanciarFalseAlarms(data);
+        InstanciarVictims(data);
     }
+
+    void DesactivarTodasLasParedes(GameObject floor)
+    {
+        // Buscar y desactivar todas las paredes en una celda
+        Transform upperWall = floor.transform.Find("UpperWall");
+        Transform leftWall = floor.transform.Find("LeftWall");
+        Transform rightWall = floor.transform.Find("RightWall");
+        Transform bottomWall = floor.transform.Find("BottomWall");
+
+        if (upperWall != null) upperWall.gameObject.SetActive(false);
+        if (leftWall != null) leftWall.gameObject.SetActive(false);
+        if (rightWall != null) rightWall.gameObject.SetActive(false);
+        if (bottomWall != null) bottomWall.gameObject.SetActive(false);
+    }
+
+
 
     void ActivarDesactivarParedes(GameObject floor, WallData wall)
     {
@@ -102,104 +136,109 @@ public class APIConnection : MonoBehaviour
 
     void InstanciarPuertas(BoardData data)
     {
-        // Desactivar todas las puertas por defecto
+        // Desactivar todas las puertas y entradas por defecto
         foreach (var floor in GameObject.FindGameObjectsWithTag("Floor"))
         {
-            Transform[] doors = floor.GetComponentsInChildren<Transform>();
-            foreach (var door in doors)
+            foreach (Transform child in floor.transform)
             {
-                if (door.name.Contains("DoorWall"))
+                if (child.name.Contains("DoorWall") || child.name.Contains("Entrance"))
                 {
-                    door.gameObject.SetActive(false); // Desactivar todas las puertas
-                }
-
-                if (door.name.Contains("Entrance"))
-                {
-                    door.gameObject.SetActive(false); // Desactivar todas las puertas
+                    child.gameObject.SetActive(false); // Desactivar todas las puertas y entradas
                 }
             }
         }
 
-        // Instanciar puertas activas según los datos del JSON
+        // Activar puertas según los datos del JSON
         foreach (var door in data.doors)
         {
-            // Coordenadas base 0 (ajustamos restando 1 a las coordenadas)
+            // Coordenadas base 0
             int x1 = door.c1 - 1;
             int y1 = door.r1 - 1;
             int x2 = door.c2 - 1;
             int y2 = door.r2 - 1;
 
             // Validar que las celdas son adyacentes
-            if ((Mathf.Abs(x1 - x2) + Mathf.Abs(y1 - y2)) != 1)
+            if (Mathf.Abs(x1 - x2) + Mathf.Abs(y1 - y2) != 1)
             {
                 Debug.LogWarning($"Puerta inválida entre celdas no adyacentes: ({door.c1},{door.r1}) y ({door.c2},{door.r2})");
                 continue;
             }
 
-            // Encontrar las celdas afectadas
-            GameObject cell1 = GameObject.Find($"Floor ({x1 + 1},{y1 + 1})"); // Sumamos 1 para visualizar correctamente las celdas
+            // Obtener las celdas afectadas
+            GameObject cell1 = GameObject.Find($"Floor ({x1 + 1},{y1 + 1})");
             GameObject cell2 = GameObject.Find($"Floor ({x2 + 1},{y2 + 1})");
 
-            // Imprimir el nombre del objeto de las celdas conectadas
-            if (cell1 != null && cell2 != null)
+            if (cell1 == null || cell2 == null)
             {
-                Debug.Log($"Puerta conectada entre los objetos: {cell1.name} y {cell2.name}");
+                Debug.LogWarning($"No se encontraron celdas para la puerta: ({door.c1},{door.r1}) - ({door.c2},{door.r2})");
+                continue;
+            }
 
-                // Activar/desactivar paredes según la puerta
-                if (y1 == y2 && Mathf.Abs(x1 - x2) == 1) // Son celdas adyacentes horizontalmente (misma fila)
-                {
-                    if (x1 < x2) // Si cell1 está a la izquierda de cell2
-                    {
-                        // Activar la pared RightDoorWall en cell1 (izquierda) y desactivar RightWall en cell1
-                        Transform rightdoorWall = cell1.transform.Find("RightDoorWall");
-                        Transform rightWall = cell1.transform.Find("RightWall");
-                        Transform leftWall = cell2.transform.Find("LeftWall");
-
-                        if (rightdoorWall != null) rightdoorWall.gameObject.SetActive(true);
-                        if (rightWall != null) rightWall.gameObject.SetActive(false);
-                        if (leftWall != null) leftWall.gameObject.SetActive(false);
-                    }
-                    else // Si cell2 está a la izquierda de cell1
-                    {
-                        // Activar la pared RightDoorWall en cell2 (izquierda) y desactivar RightWall en cell2
-                        Transform rightdoorWall = cell2.transform.Find("RightDoorWall");
-                        Transform rightWall = cell2.transform.Find("RightWall");
-                        Transform leftWall = cell1.transform.Find("LeftWall");
-
-                        if (rightdoorWall != null) rightdoorWall.gameObject.SetActive(true);
-                        if (rightWall != null) rightWall.gameObject.SetActive(false);
-                        if (leftWall != null) leftWall.gameObject.SetActive(false);
-                    }
-                }
-                else if (x1 == x2 && Mathf.Abs(y1 - y2) == 1) // Son celdas adyacentes verticalmente (misma columna)
-                {
-                    // Si la puerta es entre celdas adyacentes verticalmente
-                    if (y1 < y2) // Si cell2 está abajo de cell1 (y2 > y1)
-                    {
-                        // Activar la pared BottomDoorWall en cell1 (arriba) y desactivar BottomWall en cell1
-                        Transform bottomdoorWall = cell1.transform.Find("BottomDoorWall");
-                        Transform bottomWall = cell1.transform.Find("BottomWall");
-                        Transform upperWall = cell2.transform.Find("UpperWall");
-
-                        if (bottomdoorWall != null) bottomdoorWall.gameObject.SetActive(true);
-                        if (bottomWall != null) bottomWall.gameObject.SetActive(false);
-                        if (upperWall != null) upperWall.gameObject.SetActive(false);
-                    }
-                    else // Si cell1 está abajo de cell2 (y1 > y2)
-                    {
-                        // Activar la pared BottomDoorWall en cell2 (arriba) y desactivar BottomWall en cell2
-                        Transform bottomdoorWall = cell2.transform.Find("BottomDoorWall");
-                        Transform bottomWall = cell2.transform.Find("BottomWall");
-                        Transform upperWall = cell1.transform.Find("UpperWall");
-
-                        if (bottomdoorWall != null) bottomdoorWall.gameObject.SetActive(true);
-                        if (bottomWall != null) bottomWall.gameObject.SetActive(false);
-                        if (upperWall != null) upperWall.gameObject.SetActive(false);
-                    }
-                }
+            // Activar las puertas entre las celdas
+            if (y1 == y2) // Mismo renglón (horizontal)
+            {
+                if (x1 < x2) // cell1 a la izquierda de cell2
+                    ActivarPuerta(cell1, "RightDoorWall", "RightWall", cell2, "LeftWall");
+                else // cell2 a la izquierda de cell1
+                    ActivarPuerta(cell2, "RightDoorWall", "RightWall", cell1, "LeftWall");
+            }
+            else if (x1 == x2) // Misma columna (vertical)
+            {
+                if (y1 < y2) // cell1 arriba de cell2
+                    ActivarPuerta(cell1, "BottomDoorWall", "BottomWall", cell2, "UpperWall");
+                else // cell2 arriba de cell1
+                    ActivarPuerta(cell2, "BottomDoorWall", "BottomWall", cell1, "UpperWall");
             }
         }
+
+        // Activar entradas según los datos del JSON
+        foreach (var entrance in data.entrances)
+        {
+            int x = entrance.col - 1;
+            int y = entrance.row - 1;
+
+            GameObject cell = GameObject.Find($"Floor ({x + 1},{y + 1})");
+            if (cell == null)
+            {
+                Debug.LogWarning($"No se encontró la celda para la entrada: ({entrance.col},{entrance.row})");
+                continue;
+            }
+
+            // Activar la entrada según la posición
+            if (y == 0)
+                ActivarEntrada(cell, "UpperEntrance", "UpperWall", "UpperDoorWall");
+            else if (x == 0)
+                ActivarEntrada(cell, "LeftEntrance", "LeftWall", "LeftDoorWall");
+            else if (y == data.height - 1)
+                ActivarEntrada(cell, "BottomEntrance", "BottomWall", "BottomDoorWall");
+            else if (x == data.width - 1)
+                ActivarEntrada(cell, "RightEntrance", "RightWall", "RightDoorWall");
+        }
     }
+
+    void ActivarPuerta(GameObject cell1, string puerta1, string pared1, GameObject cell2, string pared2)
+    {
+        // Activar la puerta en cell1 y desactivar paredes relevantes
+        Transform door1 = cell1.transform.Find(puerta1);
+        Transform wall1 = cell1.transform.Find(pared1);
+        Transform wall2 = cell2.transform.Find(pared2);
+
+        if (door1 != null) door1.gameObject.SetActive(true);
+        if (wall1 != null) wall1.gameObject.SetActive(false);
+        if (wall2 != null) wall2.gameObject.SetActive(false);
+    }
+
+    void ActivarEntrada(GameObject cell, string entrada, string pared, string puerta)
+    {
+        Transform entrance = cell.transform.Find(entrada);
+        Transform wall = cell.transform.Find(pared);
+        Transform doorWall = cell.transform.Find(puerta);
+
+        if (entrance != null) entrance.gameObject.SetActive(true);
+        if (wall != null) wall.gameObject.SetActive(false);
+        if (doorWall != null) doorWall.gameObject.SetActive(false);
+    }
+
 
     void InstanciarFantasmas(BoardData data)
     {
@@ -223,18 +262,22 @@ public class APIConnection : MonoBehaviour
                     Vector3 cellPosition = cell.transform.position;
 
                     // Aplicar la transformación personalizada para posicionar correctamente el fantasma
-                    float offsetX = 6.919830f; // Desplazamiento en X para compensar rotación
-                    float offsetZ = 46.470261f; // Desplazamiento en Z para compensar rotación
-                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y, cellPosition.z + offsetZ);
+                    float offsetX = 2.019836f; // Desplazamiento en X
+                    float offsetY = 22.2000008f; // Desplazamiento en Y
+                    float offsetZ = -3.7f; // Desplazamiento en Z
+                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
 
                     // Instanciar el prefab del fantasma
                     GameObject ghost = Instantiate(ghostPrefab, adjustedPosition, Quaternion.identity);
 
-                    // Ajustar la rotación del fantasma a -180 grados en Y
-                    ghost.transform.rotation = Quaternion.Euler(0, -180, 0);
+                    // Ajustar el tag al instanciar el objeto
+                    ghost.tag = "Ghost";
 
                     // Nombrar el fantasma para facilitar su identificación
                     ghost.name = $"Ghost ({x + 1},{y + 1})";
+
+                    // Ajustar la rotación del fantasma a -180 grados en Y si es necesario
+                    ghost.transform.rotation = Quaternion.Euler(ghost.transform.rotation.eulerAngles.x, -180, ghost.transform.rotation.eulerAngles.z);
                 }
                 else
                 {
@@ -247,6 +290,104 @@ public class APIConnection : MonoBehaviour
             }
         }
     }
+
+
+    void InstanciarFalseAlarms(BoardData data)
+    {
+        foreach (var fake in data.fake_alarms)
+        {
+            // Ajustar las coordenadas para comenzar desde 0
+            int x = fake.col - 1;
+            int y = fake.row - 1;
+
+            // Verificar que las coordenadas estén dentro del rango válido
+            if (x >= 0 && x < data.width && y >= 0 && y < data.height)
+            {
+                // Encontrar la celda correspondiente
+                GameObject cell = GameObject.Find($"Floor ({x + 1},{y + 1})");
+
+                if (cell != null)
+                {
+                    Debug.Log($"Instanciando fake alarm en la celda: ({x + 1}, {y + 1})");
+
+                    // Obtener la posición de la celda
+                    Vector3 cellPosition = cell.transform.position;
+
+                    // Aplicar la transformación personalizada para posicionar correctamente el retrato
+                    float offsetX = -15.34008f; // Desplazamiento en X
+                    float offsetY = 84.5999985f; // Desplazamiento en Y
+                    float offsetZ = 21.7f; // Desplazamiento en Z
+                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
+                    // Instanciar el prefab del retrato
+                    GameObject portrait = Instantiate(portraitPrefab, adjustedPosition, Quaternion.Euler(-90, 0, -26.247f));
+
+                    // Ajustar el tag al instanciar el objeto
+                    portrait.tag = "FalseAlarm";
+
+                    // Nombrar el retrato para facilitar su identificación
+                    portrait.name = $"Portrait ({x + 1},{y + 1})";
+                }
+                else
+                {
+                    Debug.LogWarning($"No se encontró la celda en: ({x + 1}, {y + 1})");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"Coordenadas fuera de rango: ({fake.row}, {fake.col})");
+            }
+        }
+    }
+
+    void InstanciarVictims(BoardData data)
+    {
+        foreach (var victim in data.victims)
+        {
+            // Ajustar las coordenadas para comenzar desde 0
+            int x = victim.col - 1;
+            int y = victim.row - 1;
+
+            // Verificar que las coordenadas estén dentro del rango válido
+            if (x >= 0 && x < data.width && y >= 0 && y < data.height)
+            {
+                // Encontrar la celda correspondiente
+                GameObject cell = GameObject.Find($"Floor ({x + 1},{y + 1})");
+
+                if (cell != null)
+                {
+                    Debug.Log($"Instanciando fake alarm en la celda: ({x + 1}, {y + 1})");
+
+                    // Obtener la posición de la celda
+                    Vector3 cellPosition = cell.transform.position;
+
+                    // Aplicar la transformación personalizada para posicionar correctamente el retrato
+                    float offsetX = -15.34008f; // Desplazamiento en X
+                    float offsetY = 84.5999985f; // Desplazamiento en Y
+                    float offsetZ = 21.7f; // Desplazamiento en Z
+                    Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
+                    // Instanciar el prefab del retrato
+                    GameObject portrait = Instantiate(portraitPrefab, adjustedPosition, Quaternion.Euler(-90, 0, -26.247f));
+
+                    // Ajustar el tag al instanciar el objeto
+                    portrait.tag = "Victim";
+
+                    // Nombrar el retrato para facilitar su identificación
+                    portrait.name = $"Portrait ({x + 1},{y + 1})";
+                }
+                else
+                {
+                    Debug.LogWarning($"No se encontró la celda en: ({x + 1}, {y + 1})");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"Coordenadas fuera de rango: ({victim.row}, {victim.col})");
+            }
+        }
+    }
+
 
 }
 

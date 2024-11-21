@@ -25,6 +25,7 @@
 * Added web client file (20/11/2024)
 * Added functionality to build board on unity (20/11/2024)
 * Added functionality to place initial ghosts on unity (20/11/2024)
+* Added functionality to place false alarms and victims on unity (21//11/2024)
 
 ### Changed
 
@@ -41,6 +42,7 @@
 * Modified references to ghosts/portraits to fit multigrid structure (19/11/2024)
 * Modify the mansion model (21/11/2024)
 * Modify rotation of the ghost prefab (21/11/2024)
+* Modify grid height and width (21/11/2024)
 
 ### Deprecated
 
