@@ -315,7 +315,7 @@ public class APIConnection : MonoBehaviour
 
                     // Aplicar la transformación personalizada para posicionar correctamente el retrato
                     float offsetX = -15.34008f; // Desplazamiento en X
-                    float offsetY = 84.5999985f; // Desplazamiento en Y
+                    float offsetY = 45.2000008f; // Desplazamiento en Y
                     float offsetZ = 21.7f; // Desplazamiento en Z
                     Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
 
@@ -363,7 +363,7 @@ public class APIConnection : MonoBehaviour
 
                     // Aplicar la transformación personalizada para posicionar correctamente el retrato
                     float offsetX = -15.34008f; // Desplazamiento en X
-                    float offsetY = 84.5999985f; // Desplazamiento en Y
+                    float offsetY = 45.2000008f; // Desplazamiento en Y
                     float offsetZ = 21.7f; // Desplazamiento en Z
                     Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
 
