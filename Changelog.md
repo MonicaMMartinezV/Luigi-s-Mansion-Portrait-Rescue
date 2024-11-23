@@ -25,7 +25,8 @@
 * Added web client file (20/11/2024)
 * Added functionality to build board on unity (20/11/2024)
 * Added functionality to place initial ghosts on unity (20/11/2024)
-* Added functionality to place false alarms and victims on unity (21//11/2024)
+* Added functionality to place false alarms and victims on unity (21/11/2024)
+* Add functionality to fight fires and smoke (22/11/2024)
 
 ### Changed
 
@@ -45,6 +46,7 @@
 * Modify grid height and width (21/11/2024)
 * Modify light setup in Unity (21/11/2024)
 * Modify Portrait prefab for spinning effect (21/11/2024)
+* Modified movement algorithm to use BFS if Manhattan is blocked (22/11/2024)
 
 ### Deprecated
 
@@ -55,6 +57,8 @@
 * Fixed Luigi Agent variables (09/11/2024)
 * Fixed process_txt function (19/11/2024)
 * Fixed reference to name of txt file in process_txt function (19/11/2024)
+* Fixed points-check conditions in movement functions (22/11/2024)
+* Fixed add_portrait method of counting active points of interest (22/11/2024)
 
 ### Security
 
