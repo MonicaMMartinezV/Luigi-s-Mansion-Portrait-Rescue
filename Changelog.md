@@ -48,6 +48,7 @@
 * Modify Portrait prefab for spinning effect (21/11/2024)
 * Modified movement algorithm to use BFS if Manhattan is blocked (22/11/2024)
 * Modified end conditions for simulations (22/11/2024)
+* Modified portrait spawning to extinguish fire/smoke if needed (22/11/2024)
 
 ### Deprecated
 
