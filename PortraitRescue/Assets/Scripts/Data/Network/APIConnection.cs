@@ -314,10 +314,11 @@ public class APIConnection : MonoBehaviour
                     Vector3 cellPosition = cell.transform.position;
 
                     // Aplicar la transformación personalizada para posicionar correctamente el retrato
-                    float offsetX = -15.34008f; // Desplazamiento en X
-                    float offsetY = 45.2000008f; // Desplazamiento en Y
-                    float offsetZ = 21.7f; // Desplazamiento en Z
+                    float offsetX = 7.346558f; // Desplazamiento en X
+                    float offsetY = 42.8585815f; // Altura en Y
+                    float offsetZ = -2.5f; // Desplazamiento en Z
                     Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
 
                     // Instanciar el prefab del retrato
                     GameObject portrait = Instantiate(portraitPrefab, adjustedPosition, Quaternion.Euler(-90, 0, -26.247f));
@@ -362,10 +363,11 @@ public class APIConnection : MonoBehaviour
                     Vector3 cellPosition = cell.transform.position;
 
                     // Aplicar la transformación personalizada para posicionar correctamente el retrato
-                    float offsetX = -15.34008f; // Desplazamiento en X
-                    float offsetY = 45.2000008f; // Desplazamiento en Y
-                    float offsetZ = 21.7f; // Desplazamiento en Z
+                    float offsetX = 7.346558f; // Desplazamiento en X
+                    float offsetY = 42.8585815f; // Altura en Y
+                    float offsetZ = -2.5f; // Desplazamiento en Z
                     Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
 
                     // Instanciar el prefab del retrato
                     GameObject portrait = Instantiate(portraitPrefab, adjustedPosition, Quaternion.Euler(-90, 0, -26.247f));
