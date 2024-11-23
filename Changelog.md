@@ -61,7 +61,8 @@
 * Fixed reference to name of txt file in process_txt function (19/11/2024)
 * Fixed points-check conditions in movement functions (22/11/2024)
 * Fixed add_portrait method of counting active points of interest (22/11/2024)
-* Fixed portraits location in Unity(22/11/2024)
+* Fixed portraits location in Unity (22/11/2024)
+* Fixed coordinate mismatch for fire starting positions (22/11/2024)
 
 ### Security
 
