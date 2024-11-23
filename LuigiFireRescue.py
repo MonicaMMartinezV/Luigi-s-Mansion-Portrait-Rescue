@@ -65,12 +65,16 @@ def procesar_txt(file_path):
     DOORS_CONNECTED = {}
     for _ in range(8):  # 8 líneas de puertas
         r1, c1, r2, c2 = map(int, lines[index].strip().split())
-        r1, c1, r2, c2 = r1, c1, r2, c2
-        DOORS[(r1, c1, r2, c2)] = (r1, c1, r2, c2)
-        DOORS_CONNECTED[(r1, c1)] = (r2, c2)
-        DOORS_CONNECTED[(r2, c2)] = (r1, c1)
+        
+        # Reorganizar las coordenadas al formato (c1, r1, c2, r2)
+        c1, r1, c2, r2 = c1, r1, c2, r2
+        
+        # Almacenar las puertas con el formato reorganizado
+        DOORS[(c1, r1, c2, r2)] = (c1, r1, c2, r2)
+        DOORS_CONNECTED[(c1, r1)] = (c2, r2)
+        DOORS_CONNECTED[(c2, r2)] = (c1, r1)
         index += 1
-
+        
     # Procesar puntos de entrada
     ENTRANCES = []
     for _ in range(4):  # 4 líneas de puntos de entrada
