@@ -10,12 +10,15 @@ import random  # Permite generar números y secuencias aleatorias, útil para la
 import math  # Contiene funciones matemáticas básicas, como operaciones trigonométricas y logarítmicas
 
 class MansionModel(Model):
-    def __init__(self, luigis, fake_alarms, victims, walls, doors, boo, entrances, mode):
+    def __init__(self, luigis, fake_alarms,
+                 victims, walls, doors, boo, 
+                 entrances, mode, seed):
         # Inicializar la clase base Model sin argumentos adicionales
         
         super().__init__()
 
-        random.seed(100)
+        print(f"Seed: {seed}")
+        random.seed(seed)
 
         # Variables iniciales del modelo
         self.step_count        = 0
@@ -187,7 +190,7 @@ class MansionModel(Model):
     def check_collision(self, start, next):
         """Verifica si hay una colisión entre dos posiciones."""
         direction = self.direction(start, next)
-        wall_blocked = direction != None and self.grid_walls[start][0][direction] == "1"
+        wall_blocked = direction != None and self.grid_walls[start][0][direction] == 1
         if start in self.exit_positions and next in self.exit_positions:
             doors_blocked = not (self.exit_positions[start] and self.exit_positions[next])
         else:

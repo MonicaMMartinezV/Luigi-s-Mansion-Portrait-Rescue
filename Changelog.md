@@ -27,6 +27,7 @@
 * Added functionality to place initial ghosts on unity (20/11/2024)
 * Added functionality to place false alarms and victims on unity (21/11/2024)
 * Add functionality to fight fires and smoke (22/11/2024)
+* Added TestSeeds.py wrapper to test specific functionalities (22/11/2024)
 
 ### Changed
 
