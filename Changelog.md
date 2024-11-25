@@ -57,6 +57,7 @@
 * Modified end conditions for simulations (22/11/2024)
 * Modified portrait spawning to extinguish fire/smoke if needed (22/11/2024)
 * Modified funtionality of spread boos/fire to adequate to the explosion funtionality (24/11/2024)
+* Modified fire-starting function to activate after every agent step (25/11/2024)
 
 ### Deprecated
 
