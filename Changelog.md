@@ -30,6 +30,9 @@
 * Added TestSeeds.py wrapper to test specific functionalities (22/11/2024)
 * Added all funtionalities of explosions, spread_boos and damage to the mansion (24/11/2024)
 * Added funtionality respawn POIs and smoke-fire (24/11/2024)
+* Added functionality of erasing walls to place doors in model (24/11/2024)
+* Added call to check_collision in move function for agent (24/11/2024)
+* Added check for doors as viable paths to check_collision (24/11/2024)
 
 ### Changed
 
