@@ -123,13 +123,58 @@ public class SimulationController : MonoBehaviour
                     {
                         HandlePortraitRescued(agent);
                     }
-
+                    else if (action.Contains("Fire extinguished at"))
+                    {
+                        HandleFireExtinguished(action);
+                    }
                     yield return new WaitForSeconds(1f);
                 }
             }
         }
 
         agentPositions[move.id] = currentPosition;
+    }
+
+    void HandleFireExtinguished(string action)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(action, @"Fire extinguished at: \((\d+), (\d+)\)");
+        if (match.Success)
+        {
+            int x = int.Parse(match.Groups[1].Value);
+            int y = int.Parse(match.Groups[2].Value);
+
+            GameObject ghost = GameObject.Find($"Ghost ({x},{y})");
+            if (ghost != null)
+            {
+                Debug.Log($"Fuego extinguido en ({x}, {y}). Comenzando animación de ghost.");
+                StartCoroutine(AnimateGhost(ghost));
+            }
+            else
+            {
+                Debug.LogWarning($"No se encontró el ghost en las coordenadas ({x}, {y}).");
+            }
+        }
+    }
+
+    IEnumerator AnimateGhost(GameObject ghost)
+    {
+        float duration = 2f; // Duración de la animación
+        float timeElapsed = 0f;
+        Vector3 initialScale = ghost.transform.localScale;
+        Quaternion initialRotation = ghost.transform.rotation;
+
+        // Hacer que el ghost gire y se reduzca de tamaño
+        while (timeElapsed < duration)
+        {
+            float t = timeElapsed / duration;
+            ghost.transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, t); // Reducir tamaño
+            ghost.transform.rotation = Quaternion.Euler(0f, 360f * t, 0f); // Hacerlo girar
+            timeElapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Destruir el ghost después de la animación
+        Destroy(ghost);
     }
 
     void HandlePortraitFound(string action, GameObject agent)
