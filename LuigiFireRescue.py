@@ -58,7 +58,7 @@ def procesar_txt(file_path):
     FIRES = []
     for _ in range(10):  # 10 líneas de fuego
         r, c = map(int, lines[index].strip().split())
-        FIRES.append((c, r))
+        FIRES.append((r, c))
         index += 1
 
     # Procesar marcadores de puertas

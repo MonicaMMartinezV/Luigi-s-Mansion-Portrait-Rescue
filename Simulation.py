@@ -144,21 +144,12 @@ def run_simulation():
             # Registrar cada celda recorrida
             path.extend(agent.history)
 
+            actions.extend(agent.action_history)
+
             # Verificar si recogió un retrato en la celda actual
             portrait_details = agent.examine_portrait(agent.pos)
             if portrait_details:
                 actions.append(f"picked_up_{portrait_details['type']}_at_{portrait_details['position']}")
-
-            # Registrar acciones realizadas
-            if agent.role == "rescuer":
-                if agent.carrying_portrait:
-                    actions.append(f"carrying_victim")
-
-            if agent.role == "firefighter":
-                # Revisar si extinguió fuego o humo
-                for cell in path:
-                    if model.grid_details.get(cell) == 0:
-                        actions.append(f"extinguished_fire_or_smoke_at_{cell}")
 
             # Agregar datos del agente al turno
             agent_data = {

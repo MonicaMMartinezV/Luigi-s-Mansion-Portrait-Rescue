@@ -28,7 +28,7 @@ class MansionModel(Model):
         self.casualties        = 0
         #self.saved_count      = 0
         self.simulation_status = "In progress"
-        self.boo_zones         = [(row, col) for row, col in boo]
+        self.boo_zones         = [(row, col) for col, row in boo]
         self.wall_config       = walls
         self.mode              = mode
 

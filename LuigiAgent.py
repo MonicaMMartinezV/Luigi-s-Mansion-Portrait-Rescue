@@ -12,6 +12,7 @@ class LuigiAgent(Agent):
         self.pos               = None  # Posición del agente en el grid
         self.model             = model
         self.history           = []  # Histórico de movimientos
+        self.action_history    = []  # Histórico de acciones
         self.action_points     = 4  # Puntos de acción para cada turno
         self.carrying_portrait = False  # Indica si el agente lleva un retrato (víctima)
         self.in_central_grid   = False  # Indica si el agente se encuentra dentro del grid central
@@ -100,10 +101,12 @@ class LuigiAgent(Agent):
                 self.carrying_portrait = True  # El agente ahora lleva un retrato (víctima)
                 self.model.portraits[position] = None  # Eliminar la víctima rescatada
                 print(f"Agente {self.unique_id} ha encontrado una víctima en {position}.")
+                self.action_history.append(f"Portrait found at: {position}, Type: Victim")
                 return {"position": position, "type": "victim"}  # Retorna detalles
             elif portrait == "false_alarm":
                 self.model.portraits[position] = None  # Eliminar la falsa alarma
                 print(f"Agente {self.unique_id} encontró una falsa alarma en {position}.")
+                self.action_history.append(f"Portrait found at: {position}, Type: False")
                 return {"position": position, "type": "false_alarm"}  # Retorna detalles
         return None  # Si no hay retrato en esa posición
 
@@ -113,6 +116,7 @@ class LuigiAgent(Agent):
             print(f"[DEBUG] Agente {self.unique_id} apagando fuego en {position}.")
             self.model.grid_details[position] = 0  # Actualizar la celda a estado vacío
             self.action_points -= 2  # Reducir puntos de acción
+            self.action_history.append(f"Fire extinguished at: {position}") 
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar fuego en {position}.")
 
@@ -122,6 +126,7 @@ class LuigiAgent(Agent):
             print(f"[DEBUG] Agente {self.unique_id} eliminando humo en {position}.")
             self.model.grid_details[position] -= 1   # Actualizar la celda a estado vacío
             self.action_points -= 1  # Reducir puntos de acción
+            self.action_history.append(f"Smoke extinguished at: {position}") 
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar humo en {position}.")
 
