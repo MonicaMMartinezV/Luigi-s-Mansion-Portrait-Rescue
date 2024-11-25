@@ -15,6 +15,10 @@ public class SimulationController : MonoBehaviour
     [Header("API Config")]
     public string simulationApiUrl = "http://127.0.0.1:5000/run_simulation"; // Cambia la URL a tu servidor
 
+    [Header("Portrait Settings")]
+    public Material falseMaterial;
+    public Material[] victimMaterials;
+
     private SimulationData simulationData;
 
     void Start()
@@ -71,33 +75,34 @@ public class SimulationController : MonoBehaviour
         {
             Debug.Log($"Turno: {step.turn}");
 
-            // Inicia el movimiento de cada agente en secuencia (uno por uno)
-            foreach (var move in step.agent_moves)
+            foreach (var detail in step.details)
             {
-                yield return StartCoroutine(MoveAgentAlongPath(move));
+                if (detail.type == "agent_move")
+                {
+                    yield return StartCoroutine(MoveAgentAlongPath(detail.data));
+                }
             }
 
-            // Breve pausa al final del paso para visualización
             yield return new WaitForSeconds(1f);
         }
     }
 
-    IEnumerator MoveAgentAlongPath(AgentMove move)
+    IEnumerator MoveAgentAlongPath(ActionData move)
     {
+        if (!agents.ContainsKey(move.id))
+        {
+            Debug.LogError($"Agente con ID {move.id} no encontrado.");
+            yield break;
+        }
+
         GameObject agent = agents[move.id];
-
-        // Obtener la posición actual del agente
         Vector3 currentPosition = agentPositions[move.id];
-
-        // Encontrar el índice en el path desde donde el agente debe continuar
         int startIndex = FindClosestPathIndex(move.path, currentPosition);
 
-        // Recorre el path desde el índice encontrado
         for (int i = startIndex; i < move.path.Count; i++)
         {
             Vector3 targetPosition = GetFloorPosition(move.path[i][0], move.path[i][1]);
 
-            // Mueve al agente hacia la siguiente posición en el camino
             while (Vector3.Distance(currentPosition, targetPosition) > 0.01f)
             {
                 agent.transform.position = Vector3.MoveTowards(agent.transform.position, targetPosition, Time.deltaTime * moveSpeed);
@@ -105,22 +110,105 @@ public class SimulationController : MonoBehaviour
                 yield return null;
             }
 
-            // Si hay acciones asociadas a esta posición, ejecútalas
             foreach (var action in move.actions)
             {
                 if (IsActionAtPosition(move.path[i], action))
                 {
                     Debug.Log($"Agente {move.id} realizando acción: {action}");
-                    yield return new WaitForSeconds(1f); // Pausa breve para visualizar la acción
+                    if (action.Contains("Portrait found"))
+                    {
+                        HandlePortraitFound(action, agent);
+                    }
+                    else if (action.Contains("Portrait rescued"))
+                    {
+                        HandlePortraitRescued(agent);
+                    }
+
+                    yield return new WaitForSeconds(1f);
                 }
             }
         }
 
-        // Actualiza la última posición del agente al final del movimiento
         agentPositions[move.id] = currentPosition;
     }
 
-    // Encuentra el índice más cercano en el path a la posición actual
+    void HandlePortraitFound(string action, GameObject agent)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(action, @"Portrait found at: \((\d+), (\d+)\), Type: (\w+)");
+        if (match.Success)
+        {
+            int x = int.Parse(match.Groups[1].Value);
+            int y = int.Parse(match.Groups[2].Value);
+            string type = match.Groups[3].Value;
+
+            GameObject mainPortrait = GameObject.Find($"Portrait ({x},{y})");
+            if (mainPortrait != null)
+            {
+                Transform innerPortrait = mainPortrait.transform.Find("Portrait");
+                if (innerPortrait != null)
+                {
+                    Transform mesh4 = innerPortrait.Find("Mesh4");
+                    if (mesh4 != null)
+                    {
+                        Renderer renderer = mesh4.GetComponent<Renderer>();
+                        if (renderer != null)
+                        {
+                            if (type == "Victim")
+                            {
+                                // Cambiar material y convertir en hijo del agente
+                                Material randomMaterial = victimMaterials[Random.Range(0, victimMaterials.Length)];
+                                renderer.material = randomMaterial;
+                                Debug.Log($"Retrato en ({x}, {y}) identificado como 'Victim'. Ahora es hijo de {agent.name}.");
+                                LevitateAndRotate levitateAndRotate = mainPortrait.GetComponent<LevitateAndRotate>();
+                                if (levitateAndRotate != null)
+                                {
+                                    Destroy(levitateAndRotate); // Eliminar el componente
+                                    Debug.Log("Componente LevitateAndRotate eliminado del retrato.");
+                                }
+                                else
+                                {
+                                    Debug.LogWarning("El retrato no tiene el componente LevitateAndRotate.");
+                                }
+                                mainPortrait.transform.SetParent(agent.transform);
+                            }
+                            else if (type == "False")
+                            {
+                                // Cambiar material y destruir después de 2 segundos
+                                renderer.material = falseMaterial;
+                                Debug.Log($"Retrato en ({x}, {y}) identificado como 'False'. Destruyendo retrato.");
+                                Destroy(mainPortrait, 2f);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void HandlePortraitRescued(GameObject agent)
+    {
+        Transform portrait = null;
+
+        foreach (Transform child in agent.transform.GetComponentsInChildren<Transform>())
+        {
+            if (child.name.Contains("Portrait"))
+            {
+                portrait = child;
+                break; // Salir del bucle tras encontrarlo
+            }
+        }
+
+        if (portrait != null)
+        {
+            Debug.Log($"Retrato rescatado por {agent.name}. Destruyendo retrato: {portrait.name}");
+            Destroy(portrait.gameObject);
+        }
+        else
+        {
+            Debug.LogWarning($"El agente {agent.name} no tiene un retrato para rescatar.");
+        }
+    }
+
     int FindClosestPathIndex(List<List<int>> path, Vector3 currentPosition)
     {
         float minDistance = float.MaxValue;
@@ -141,15 +229,12 @@ public class SimulationController : MonoBehaviour
         return closestIndex;
     }
 
-
-
-    // Función para encontrar la posición del 'Floor' en base a coordenadas
     Vector3 GetFloorPosition(int x, int y)
     {
         GameObject floor = GameObject.Find($"Floor ({x},{y})");
         if (floor != null)
         {
-            return floor.transform.position + new Vector3(0, 1f, 0);  // Desplaza el agente justo encima del piso
+            return floor.transform.position + new Vector3(0, 1f, 0);
         }
         else
         {
@@ -158,7 +243,6 @@ public class SimulationController : MonoBehaviour
         }
     }
 
-    // Función para comprobar si la acción está en la posición actual
     bool IsActionAtPosition(List<int> position, string action)
     {
         string posString = $"({position[0]}, {position[1]})";
@@ -186,13 +270,21 @@ public class Agent
 public class Step
 {
     public int turn;
-    public List<AgentMove> agent_moves;
+    public List<Detail> details;
 }
 
 [System.Serializable]
-public class AgentMove
+public class Detail
 {
+    public string type;
+    public ActionData data;
+}
+
+[System.Serializable]
+public class ActionData
+{
+    public List<string> actions;
     public int id;
     public List<List<int>> path;
-    public List<string> actions;
 }
+

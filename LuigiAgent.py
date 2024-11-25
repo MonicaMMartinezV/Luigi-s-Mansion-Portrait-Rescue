@@ -171,6 +171,7 @@ class LuigiAgent(Agent):
                      # Si el agente llega a la salida, se rescató la víctima
                     if self.pos == nearest_exit:
                         print(f"[DEBUG] Agente {self.unique_id} ha llegado a la salida con el retrato.")
+                        self.action_history.append(f"Portrait rescued at: {nearest_exit}") 
                         self.carrying_portrait = False  # Resetear estatus de
                         self.model.rescued += 1  # Contar el rescate en el modelo
                         print(f"[DEBUG] Agente {self.unique_id} ha rescatado a una víctima. Total rescatados: {self.model.rescued}")
