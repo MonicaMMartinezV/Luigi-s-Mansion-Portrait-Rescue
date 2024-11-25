@@ -227,6 +227,7 @@ class LuigiAgent(Agent):
                                 self.extinguish_fire(nearest_fire)
                             elif self.action_points == 1:
                                 self.extinguish_smoke(nearest_fire)
+                                print(f"[DEBUG] Agente {self.unique_id} bajando fuego a humo . El fuego es : {nearest_fire}")
                         elif fire_value == 1: # Si tiene puntos y es humo
                             self.extinguish_smoke(nearest_fire)     
                         continue # Después de lidiar con el humo/fuego, sigue buscando otro

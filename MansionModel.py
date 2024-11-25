@@ -31,6 +31,7 @@ class MansionModel(Model):
         self.boo_zones         = [(row, col) for col, row in boo]
         self.wall_config       = walls
         self.mode              = mode
+        self.model_events = []
 
         # Configuración del recolector de datos
         self.datacollector = DataCollector(
@@ -162,6 +163,10 @@ class MansionModel(Model):
             self.schedule.add(agent)
             print(f"Agente {idx} con rol {role} colocado en posición {position}")
 
+    def log_event(self, event):
+        """Agrega un evento al registro del modelo."""
+        self.model_events.append(event)
+
     def add_portraits(self):
         """Agrega retratos si hay menos de 3 activos dentro del área central del grid."""
         active_points = sum(1 for portrait in self.portraits.values() if portrait in ["victim", "false_alarm"])
@@ -189,6 +194,12 @@ class MansionModel(Model):
                     self.grid_details[candidate_point] = 0
                     new_points += 1
                     print(f"[INFO] Nuevo retrato agregado en {candidate_point}: {portrait_type}")
+                    self.log_event({
+                        "type": "portrait_added",
+                        "position": candidate_point,
+                        "portrait_type": portrait_type,
+                        "step": self.step_count
+                    })
 
     def spread_boos(self):
         """Extiende la presencia de fantasmas únicamente dentro del área central del grid."""
@@ -208,9 +219,19 @@ class MansionModel(Model):
             if self.grid_details[target_pos] == 0:
                 self.grid_details[target_pos] = 1
                 print(f"[INFO] Nuevo humo agregado en {target_pos}")
+                self.log_event({
+                    "type": "smoke_added",
+                    "position": target_pos,
+                    "step": self.step_count
+                })
             elif self.grid_details[target_pos] == 1:
                 self.grid_details[target_pos] = 2
                 print(f"[INFO] Nuevo fuego agregado en {target_pos}")
+                self.log_event({
+                    "type": "fire_added",
+                    "position": target_pos,
+                    "step": self.step_count
+                })
             elif self.grid_details[target_pos] == 2:
                 neighbors = self.grid.get_neighborhood(target_pos, moore=False, include_center=False)
                 for neighbor in neighbors:
@@ -223,6 +244,12 @@ class MansionModel(Model):
                                 self.grid_details[neighbor] = 2
                                 self.boo_zones.append(neighbor)
                                 print(f"[INFO] Nuevo fuego extendido de {target_pos} a {neighbor}")
+                                self.log_event({
+                                    "type": "fire_extended",
+                                    "from": target_pos,
+                                    "to": neighbor,
+                                    "step": self.step_count
+                                })
                         elif self.grid_details.get(neighbor) == 2:
                             if self.check_collision_walls_doors(target_pos, neighbor):
                                 self.register_damage_walls_doors(target_pos, neighbor)
@@ -271,6 +298,12 @@ class MansionModel(Model):
                     self.grid_walls[origin][0] = ''.join(origin_wall)
                     self.grid_walls[target][0] = ''.join(target_wall)
                     print(f"[INFO] Pared destruida de {origin} a {target}")
+                    self.log_event({
+                        "type": "wall_destroyed",
+                        "from": origin,
+                        "to": target,
+                        "step": self.step_count
+                    })
                 elif origin_counter[path_org]== "0" and target_counter[path_targ]== "0":
                     self.damage_counter += 1
                     origin_counter[path_org] = "1"
@@ -278,6 +311,11 @@ class MansionModel(Model):
                     self.grid_walls[origin][1] = ''.join(origin_counter)
                     self.grid_walls[target][1] = ''.join(target_counter)
                     print(f"[INFO] Daño registrado en {origin} y {target}")
+                    self.log_event({
+                        "type": "damage_registered",
+                        "position": origin,
+                        "step": self.step_count
+                    })
                 else:
                     pass
             else:
@@ -306,11 +344,22 @@ class MansionModel(Model):
             origin_wall[path_org]= "0"
             self.grid_walls[origin][0] = ''.join(origin_wall)
             print(f"[INFO] Pared destruida de {origin} a {target}")
+            self.log_event({
+                "type": "wall_destroyed",
+                "from": origin,
+                "to": target,
+                "step": self.step_count
+            })
         elif origin_counter[path_org]== "0":
             self.damage_counter += 1
             origin_counter[path_org] = "1"
             self.grid_walls[origin][1] = ''.join(origin_counter)
             print(f"[INFO] Daño registrado en {origin}")
+            self.log_event({
+                "type": "damage_registered",
+                "position": origin,
+                "step": self.step_count
+            })
         else:
             pass
 
@@ -336,6 +385,12 @@ class MansionModel(Model):
                     self.grid_details[exp_neighbor] = 2
                     self.boo_zones.append(exp_neighbor)
                     print(f"[INFO] Nuevo fuego extendido de {target} a {exp_neighbor}")
+                    self.log_event({
+                        "type": "fire_extended",
+                        "from": target,
+                        "to": exp_neighbor,
+                        "step": self.step_count
+                    })
                     break
                 elif self.grid_details.get(exp_neighbor) == 2:
                     self.trigger_explosion(target,exp_neighbor)

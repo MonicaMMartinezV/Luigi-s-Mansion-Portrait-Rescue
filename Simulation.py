@@ -146,7 +146,6 @@ def get_board():
 
 @app.route('/run_simulation', methods=['GET'])
 def run_simulation():
-
     # Configurar modelo
     random.seed(SEED)
     WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt_sim(FILE_PATH)
@@ -168,56 +167,51 @@ def run_simulation():
     # Simular turnos
     steps = []
     while model.step_count <= 1000:
-        turn_data = {
-            "turn": model.step_count,
-            "agent_moves": [],
-            "fire_updates": [],
-            "portrait_updates": []
-        }
+        turn_data = {"turn": model.step_count, "details": []}
+
+        agent_moves = []
+        model.model_events.clear()  # Limpiar eventos previos
 
         # Procesar movimientos y acciones de agentes
         for agent in model.schedule.agents:
-            path = []  # Lista para registrar cada celda recorrida
-            actions = []  # Lista para registrar acciones específicas del agente
+            path = []
+            actions = []
 
             # Ejecutar el turno del agente
             agent.step()
-
-            # Registrar cada celda recorrida
             path.extend(agent.history)
-
             actions.extend(agent.action_history)
 
-            # Verificar si recogió un retrato en la celda actual
+            # Verificar si recogió un retrato
             portrait_details = agent.examine_portrait(agent.pos)
             if portrait_details:
                 actions.append(f"picked_up_{portrait_details['type']}_at_{portrait_details['position']}")
 
-            # Agregar datos del agente al turno
-            agent_data = {
-                "id": agent.unique_id,
-                "path": path,
-                "actions": actions
-            }
-            turn_data["agent_moves"].append(agent_data)
+            # Agregar movimientos de cada agente
+            agent_moves.append({
+                "type": "agent_move",
+                "data": {
+                    "id": agent.unique_id,
+                    "path": path,
+                    "actions": actions
+                }
+            })
 
-        # Registrar cambios en fuego
-        for position, state in model.grid_details.items():
-            if state == 1:
-                turn_data["fire_updates"].append({"position": position, "state": "smoke"})
-            elif state == 2:
-                turn_data["fire_updates"].append({"position": position, "state": "fire"})
+        # Alternar entre movimientos de agentes y eventos del modelo
+        max_len = max(len(agent_moves), len(model.model_events))
+        for i in range(max_len):
+            if i < len(agent_moves):
+                turn_data["details"].append(agent_moves[i])
+            if i < len(model.model_events):
+                turn_data["details"].append({
+                    "type": "model_event",
+                    "data": model.model_events[i]
+                })
 
-        # Registrar cambios en retratos
-        for position, portrait_type in model.portraits.items():
-            if portrait_type is None:
-                turn_data["portrait_updates"].append({"position": position, "state": "removed"})
-            elif portrait_type == "victim":
-                turn_data["portrait_updates"].append({"position": position, "state": "new_victim"})
-
-        # Agregar datos del turno
+        # Agregar datos del turno al historial
         steps.append(turn_data)
 
+        # Ejecutar el paso del modelo
         model.step()
         if model.update_simulation_status():
             break
@@ -228,7 +222,6 @@ def run_simulation():
         "steps": steps
     }
     return jsonify(response)
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
