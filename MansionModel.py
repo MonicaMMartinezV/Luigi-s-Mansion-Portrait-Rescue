@@ -124,7 +124,7 @@ class MansionModel(Model):
 
         # Configurar zonas de fantasmas
         for position in self.boo_zones:
-            self.grid_details[(position[1],position[0])] = 2
+            self.grid_details[position] = 2
         
         # Imprimir información inicial de zonas de fantasmas
         print("[INFO] Coordenadas iniciales de zonas de fantasmas:")
@@ -192,6 +192,7 @@ class MansionModel(Model):
 
     def spread_boos(self):
         """Extiende la presencia de fantasmas únicamente dentro del área central del grid."""
+        print(f"Damage: {self.damage_counter}")
         # Definir el área central del grid
         central_area = [
             (x, y) for x in range(1, 9) for y in range(1, 7)
@@ -214,17 +215,32 @@ class MansionModel(Model):
                 neighbors = self.grid.get_neighborhood(target_pos, moore=False, include_center=False)
                 for neighbor in neighbors:
                     if neighbor in central_area:
-                        if self.check_collision(target_pos, neighbor):
-                            self.register_damage(target_pos, neighbor)
-                        if self.grid_details.get(neighbor) == 0:
-                            self.grid_details[neighbor] = 2
-                            print(f"[INFO] Nuevo fuego extendido en {neighbor}")
+                        if self.grid_details.get(neighbor) == 0 or \
+                           self.grid_details.get(neighbor) == 1:
+                            if self.check_collision_walls_doors(target_pos, neighbor):
+                                self.register_damage_walls_doors(target_pos, neighbor)
+                            else:
+                                self.grid_details[neighbor] = 2
+                                self.boo_zones.append(neighbor)
+                                print(f"[INFO] Nuevo fuego extendido de {target_pos} a {neighbor}")
+                        elif self.grid_details.get(neighbor) == 2:
+                            if self.check_collision_walls_doors(target_pos, neighbor):
+                                self.register_damage_walls_doors(target_pos, neighbor)
+                            else:
+                                self.trigger_explosion(target_pos,neighbor)
+                        else:
+                            pass
+                    else:
+                        if self.check_collision_walls_doors(target_pos, neighbor):
+                            self.register_damage_walls_doors(target_pos, neighbor)
+                        else:
+                            pass
 
 
-    def register_damage(self, origin, target):
+    def register_damage_walls_doors(self, origin, target):
         """Registra daño en muros o puertas."""
         if origin in self.exit_positions and target in self.exit_positions:
-            if not self.exit_positions[origin] and not self.exit_positions[target]:
+            if self.exit_positions[origin]==False and self.exit_positions[target]==False:
                 del self.exit_positions[origin]
                 del self.exit_positions[target]
                 origin_wall = list(self.grid_walls[origin][0])
@@ -237,7 +253,98 @@ class MansionModel(Model):
                 self.grid_walls[target][0] = "".join(target_wall)
                 self.damage_counter += 1
         else:
+            central_area = [
+                (x, y) for x in range(1, 9) for y in range(1, 7)
+            ]
+            
+            if target in central_area:
+                path_org= self.direction(origin, target)
+                path_targ= self.direction(target, origin)
+                origin_wall = list(self.grid_walls[origin][0])
+                target_wall = list(self.grid_walls[target][0])
+                origin_counter = list(self.grid_walls[origin][1])
+                target_counter = list(self.grid_walls[target][1])
+                if origin_counter[path_org]== "1" and target_counter[path_targ]== "1":
+                    self.damage_counter += 1
+                    origin_wall[path_org]= "0"
+                    target_wall[path_targ]= "0"
+                    self.grid_walls[origin][0] = ''.join(origin_wall)
+                    self.grid_walls[target][0] = ''.join(target_wall)
+                    print(f"[INFO] Pared destruida de {origin} a {target}")
+                elif origin_counter[path_org]== "0" and target_counter[path_targ]== "0":
+                    self.damage_counter += 1
+                    origin_counter[path_org] = "1"
+                    target_counter[path_targ] = "1"
+                    self.grid_walls[origin][1] = ''.join(origin_counter)
+                    self.grid_walls[target][1] = ''.join(target_counter)
+                    print(f"[INFO] Daño registrado en {origin} y {target}")
+                else:
+                    pass
+            else:
+                direction = self.direction(origin, target)
+                origin_nw_crnr = (1,1)
+                origin_ne_crnr = (8,1)
+                origin_sw_crnr = (1,6)
+                origin_sw_crnr = (8,6)
+                
+                if origin == origin_nw_crnr or origin == origin_ne_crnr:
+                    if direction != 0:
+                        self.wall_damage(origin, target)
+                elif origin == origin_sw_crnr or origin == origin_ne_crnr:
+                    if direction != 2:
+                        self.wall_damage(origin, target)
+                elif origin not in self.entrances and \
+                   target not in self.entrances:
+                    self.wall_damage(origin, target)
+    
+    def wall_damage(self, origin, target):
+        path_org       = self.direction(origin, target)
+        origin_wall    = list(self.grid_walls[origin][0])
+        origin_counter = list(self.grid_walls[origin][1])
+        if origin_counter[path_org]== "1":
             self.damage_counter += 1
+            origin_wall[path_org]= "0"
+            self.grid_walls[origin][0] = ''.join(origin_wall)
+            print(f"[INFO] Pared destruida de {origin} a {target}")
+        elif origin_counter[path_org]== "0":
+            self.damage_counter += 1
+            origin_counter[path_org] = "1"
+            self.grid_walls[origin][1] = ''.join(origin_counter)
+            print(f"[INFO] Daño registrado en {origin}")
+        else:
+            pass
+
+    def trigger_explosion(self, origin, target):
+        """
+        Maneja la dinámica de explosiones desde una celda específica.
+        Las explosiones dañan paredes, se propagan a celdas vecinas y pueden causar daño estructural.
+        """
+        print(f"[DEBUG] Explosión iniciada en {origin} con dirección a {target}.")
+        
+        direction = self.direction(origin, target)
+
+        exp_neighbors = self.grid.get_neighborhood(target, moore=False, include_center=False)
+        
+        for exp_neighbor in exp_neighbors:
+            if self.direction(target, exp_neighbor) == direction and \
+               exp_neighbor != origin:
+                if self.check_collision_walls_doors(target, exp_neighbor):
+                    self.register_damage_walls_doors(target, exp_neighbor)
+                    break
+                elif self.grid_details.get(exp_neighbor) == 0 or \
+                   self.grid_details.get(exp_neighbor) == 1:
+                    self.grid_details[exp_neighbor] = 2
+                    self.boo_zones.append(exp_neighbor)
+                    print(f"[INFO] Nuevo fuego extendido de {target} a {exp_neighbor}")
+                    break
+                elif self.grid_details.get(exp_neighbor) == 2:
+                    self.trigger_explosion(target,exp_neighbor)
+                    break
+                else:
+                    pass
+        
+        return
+
 
     def trigger_wave(self, position):
         """Desencadena una oleada de incendios."""
@@ -247,21 +354,24 @@ class MansionModel(Model):
         """Calcula la dirección de movimiento entre dos posiciones."""
         delta_x = next[0] - start[0]
         delta_y = next[1] - start[1]
+        # Si no hay cambio en X (movimiento vertical)
         if delta_x == 0:
             if delta_y < 0:
-                return 0
+                return 0  # Movimiento hacia arriba (Norte)
             else:
-                return 2
+                return 2  # Movimiento hacia abajo (Sur)
+
+        # Si no hay cambio en Y (movimiento horizontal)
         elif delta_y == 0:
             if delta_x < 0:
-                return 1
+                return 1  # Movimiento hacia la izquierda (Oeste)
             else:
-                return 3
+                return 3  # Movimiento hacia la derecha (Este)
 
-    def check_collision(self, start, next):
+    def check_collision_walls_doors(self, start, next):
         """Verifica si hay una colisión entre dos posiciones."""
         direction = self.direction(start, next)
-        wall_blocked = direction != None and self.grid_walls[start][0][direction] == 1
+        wall_blocked = direction != None and self.grid_walls[start][0][direction] == '1'
         if start in self.exit_positions and next in self.exit_positions:
             doors_blocked = not (self.exit_positions[start] and self.exit_positions[next])
         else:
@@ -282,6 +392,16 @@ class MansionModel(Model):
                 del self.portraits[point]
                 self.casualties += 1
                 break
+    
+    #def process_flashover(self):
+    #    """Procesa la expansión de incendios y verifica condiciones de explosión."""
+    #    smoke_cells = [pos for pos, val in self.grid_details.items() if val == 1]
+    #    for smoke_cell in smoke_cells:
+    #        neighbors = self.grid.get_neighborhood(smoke_cell, moore=False, include_center=False)
+    #        for neighbor in neighbors:
+    #            if self.grid_details[neighbor] == 2:  # Fuego cerca del humo
+    #                #self.trigger_explosion(smoke_cell)  # Inicia explosión
+    #                break
 
     def update_simulation_status(self):
         """Actualiza el estado de la simulación."""

@@ -111,7 +111,7 @@ NUM_SIMULACIONES = 1
 # Para almacenar los resultados de cada simulación
 resultados_simulaciones = []
 
-for SEED in range(200,1000):
+for SEED in range(205):
     for sim in range(NUM_SIMULACIONES):
         print(f"\n--- Simulación {sim + 1} ---")
         model = MansionModel(LUIGIS, FAKE_ALARMS, 

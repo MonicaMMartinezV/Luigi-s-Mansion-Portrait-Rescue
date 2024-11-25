@@ -28,6 +28,8 @@
 * Added functionality to place false alarms and victims on unity (21/11/2024)
 * Add functionality to fight fires and smoke (22/11/2024)
 * Added TestSeeds.py wrapper to test specific functionalities (22/11/2024)
+* Added all funtionalities of explosions, spread_boos and damage to the mansion (24/11/2024)
+* Added funtionality respawn POIs and smoke-fire (24/11/2024)
 
 ### Changed
 
@@ -50,6 +52,7 @@
 * Modified movement algorithm to use BFS if Manhattan is blocked (22/11/2024)
 * Modified end conditions for simulations (22/11/2024)
 * Modified portrait spawning to extinguish fire/smoke if needed (22/11/2024)
+* Modified funtionality of spread boos/fire to adequate to the explosion funtionality (24/11/2024)
 
 ### Deprecated
 
@@ -65,6 +68,9 @@
 * Fixed portraits location in Unity (22/11/2024)
 * Fixed coordinate mismatch for fire starting positions (23/11/2024)
 * Fixed coordinate for walls and starting positions (23/11/2024)
+* Fixed explosions and damage walls
+* Fixed spawn portraits
+* Instatite only one wall in Unity (24/11/2024)
 
 ### Security
 

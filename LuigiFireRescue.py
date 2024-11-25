@@ -25,7 +25,7 @@ from queue import Queue
 
 DEVELOPMENT_MODE = True
 WAIT_TIME = 0.01
-SEED = 200
+SEED = 14
 
 def procesar_txt(file_path):
     with open(file_path, 'r') as file:
