@@ -1,6 +1,5 @@
 from mesa import Agent
 from queue import Queue
-from AStar import AStarSolver
 
 DEVELOPMENT = False
 
