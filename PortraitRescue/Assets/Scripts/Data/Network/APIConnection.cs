@@ -95,7 +95,7 @@ public class APIConnection : MonoBehaviour
                 }
             }
         }
-
+        DesactivarParedesConectadas(data);
         // Trabajar con los datos originales para puertas, fantasmas y puntos de interés
         InstanciarPuertas(data);
         InstanciarFantasmas(data);
@@ -117,8 +117,6 @@ public class APIConnection : MonoBehaviour
         if (bottomWall != null) bottomWall.gameObject.SetActive(false);
     }
 
-
-
     void ActivarDesactivarParedes(GameObject floor, WallData wall)
     {
         // Buscar los objetos dentro de floorPrefab
@@ -132,6 +130,59 @@ public class APIConnection : MonoBehaviour
         if (leftWall != null) leftWall.gameObject.SetActive(wall.left == 1);
         if (rightWall != null) rightWall.gameObject.SetActive(wall.right == 1);
         if (bottomWall != null) bottomWall.gameObject.SetActive(wall.bottom == 1);
+    }
+
+    void DesactivarParedSiEstaActiva(Transform wall)
+    {
+        // Solo desactivar si está activa
+        if (wall != null && wall.gameObject.activeSelf)
+        {
+            wall.gameObject.SetActive(false);
+        }
+    }
+
+    void DesactivarParedesConectadas(BoardData data)
+    {
+        int extendedWidth = data.width + 2;
+        int extendedHeight = data.height + 2;
+        // Recorrer las celdas y desactivar las paredes conectadas
+        for (int y = 0; y < extendedHeight; y++)
+        {
+            for (int x = 0; x < extendedWidth; x++)
+            {
+                // Verificar que la celda tiene una pared activa
+                GameObject currentCell = GameObject.Find($"Floor ({x + 1},{y + 1})");
+                if (currentCell != null)
+                {
+                    Transform currentRightWall = currentCell.transform.Find("RightWall");
+                    Transform currentLeftWall = currentCell.transform.Find("LeftWall");
+
+                    // Verificar si la celda actual tiene pared a la derecha
+                    if (currentRightWall != null && currentRightWall.gameObject.activeSelf && x + 1 < extendedWidth)
+                    {
+                        // Desactivar la pared a la izquierda de la siguiente celda (conectada)
+                        GameObject nextCell = GameObject.Find($"Floor ({x + 2},{y + 1})");
+                        if (nextCell != null)
+                        {
+                            Transform nextLeftWall = nextCell.transform.Find("LeftWall");
+                            DesactivarParedSiEstaActiva(nextLeftWall);
+                        }
+                    }
+
+                    // Verificar si la celda actual tiene pared abajo
+                    if (currentRightWall != null && currentRightWall.gameObject.activeSelf && y + 1 < extendedHeight)
+                    {
+                        // Desactivar la pared superior de la siguiente celda (conectada)
+                        GameObject nextCell = GameObject.Find($"Floor ({x + 1},{y + 2})");
+                        if (nextCell != null)
+                        {
+                            Transform nextTopWall = nextCell.transform.Find("TopWall");
+                            DesactivarParedSiEstaActiva(nextTopWall);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     void InstanciarPuertas(BoardData data)

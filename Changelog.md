@@ -64,6 +64,7 @@
 * Fixed portraits location in Unity (22/11/2024)
 * Fixed coordinate mismatch for fire starting positions (23/11/2024)
 * Fixed coordinate for walls and starting positions (23/11/2024)
+* Instatite only one wall in Unity (24/11/2024)
 
 ### Security
 
