@@ -93,21 +93,19 @@ class LuigiAgent(Agent):
             return False  # No se encontró un camino válido
 
     def examine_portrait(self, position):
-        """Recoge el retrato de la víctima cuando el agente llega a su posición.
-        Examina el retrato y determina si es una víctima o una falsa alarma.
-        """
+        """Recoge el retrato de la víctima o falsa alarma cuando el agente llega a su posición."""
         if position in self.model.portraits:
             portrait = self.model.portraits[position]
             if portrait == "victim":
                 self.carrying_portrait = True  # El agente ahora lleva un retrato (víctima)
-                #self.model.saved_count += 1
                 self.model.portraits[position] = None  # Eliminar la víctima rescatada
                 print(f"Agente {self.unique_id} ha encontrado una víctima en {position}.")
+                return {"position": position, "type": "victim"}  # Retorna detalles
             elif portrait == "false_alarm":
-                print(f"Agente {self.unique_id} encontró una falsa alarma en {position}. Eliminando de la lista y buscando otro retrato.")
                 self.model.portraits[position] = None  # Eliminar la falsa alarma
-                return False  # Indicar que debe buscar otro retrato
-        return True
+                print(f"Agente {self.unique_id} encontró una falsa alarma en {position}.")
+                return {"position": position, "type": "false_alarm"}  # Retorna detalles
+        return None  # Si no hay retrato en esa posición
 
     def extinguish_fire(self, position):
         """Extinguir fuego en la posición dada."""
@@ -144,6 +142,7 @@ class LuigiAgent(Agent):
         self.action_points -= 1
         self.model.grid.move_agent(self, next_step)
         self.pos = next_step
+        self.history.append(self.pos)
 
         print(f"[DEBUG] Agente {self.unique_id} se mueve dentro del cuadrante central en {self.pos}.")
 
