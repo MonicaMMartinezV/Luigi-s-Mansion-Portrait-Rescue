@@ -33,6 +33,7 @@
 * Added functionality of erasing walls to place doors in model (24/11/2024)
 * Added call to check_collision in move function for agent (24/11/2024)
 * Added check for doors as viable paths to check_collision (24/11/2024)
+* Added funtionalities of A* and heuritic using manhattan (25/11/2024)
 
 ### Changed
 
@@ -71,9 +72,10 @@
 * Fixed portraits location in Unity (22/11/2024)
 * Fixed coordinate mismatch for fire starting positions (23/11/2024)
 * Fixed coordinate for walls and starting positions (23/11/2024)
-* Fixed explosions and damage walls
-* Fixed spawn portraits
+* Fixed explosions and damage walls (24/11/2024)
+* Fixed spawn portraits (24/11/2024)
 * Instatite only one wall in Unity (24/11/2024)
+* Fixed of movement of firefighter and rescuer (25/11/2024)
 
 ### Security
 
