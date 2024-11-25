@@ -645,6 +645,7 @@ GameObject:
   m_Component:
   - component: {fileID: 364566169}
   - component: {fileID: 364566170}
+  - component: {fileID: 364566171}
   m_Layer: 0
   m_Name: Resource System
   m_TagString: Untagged
@@ -683,6 +684,22 @@ MonoBehaviour:
   ghostPrefab: {fileID: 4690558405127934314, guid: 0c726fdd145de9d4981018952103ab18, type: 3}
   portraitPrefab: {fileID: 2214140215341374453, guid: 7688cbbbba40a8647a68007d0cfbab41, type: 3}
   apiUrl: http://127.0.0.1:5000/get_board
+--- !u!114 &364566171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 364566168}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7029f3c189e7cf245bf47141a33d1640, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rescuerPrefab: {fileID: 5446296260566650656, guid: b15e6c69dec30d34eae76b64b53c352b, type: 3}
+  firefighterPrefab: {fileID: 5446296260566650656, guid: b15e6c69dec30d34eae76b64b53c352b, type: 3}
+  moveSpeed: 100
+  simulationApiUrl: http://127.0.0.1:5000/run_simulation
 --- !u!4 &375089072 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1381161402237107609, guid: 279882c5c3730784a8e47b21433d6e19, type: 3}

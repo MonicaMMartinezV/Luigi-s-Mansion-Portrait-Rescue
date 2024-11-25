@@ -10,7 +10,6 @@ LUIGIS = 6
 DEVELOPMENT_MODE = True
 FILE_PATH = './final.txt'
 
-
 def procesar_txt(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -80,6 +79,64 @@ def procesar_txt(file_path):
     return data
 
 
+def procesar_txt_sim(file_path):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    # Procesar paredes
+    WALLS = []
+    index = 0
+    for _ in range(6):  # 6 líneas de paredes
+        row = []
+        cells = lines[index].strip().split()
+        for cell in cells:
+            walls = [int(d) for d in cell]  # Cada celda se descompone en 4 dígitos
+            row.append(walls)
+        WALLS.append(row)
+        index += 1
+
+    # Procesar puntos de interés
+    FAKE_ALARMS = []
+    VICTIMS = []
+    for _ in range(3):  # Máximo 3 líneas para puntos de interés
+        r, c, marker_type = lines[index].strip().split()
+        if marker_type == 'f':  # Falsa alarma
+            FAKE_ALARMS.append((int(r), int(c)))
+        elif marker_type == 'v':  # Víctima
+            VICTIMS.append((int(r), int(c)))
+        index += 1
+
+    # Procesar marcadores de fuego
+    FIRES = []
+    for _ in range(10):  # 10 líneas de fuego
+        r, c = map(int, lines[index].strip().split())
+        FIRES.append((r, c))
+        index += 1
+
+    # Procesar marcadores de puertas
+    DOORS = {}
+    DOORS_CONNECTED = {}
+    for _ in range(8):  # 8 líneas de puertas
+        r1, c1, r2, c2 = map(int, lines[index].strip().split())
+        
+        # Reorganizar las coordenadas al formato (c1, r1, c2, r2)
+        c1, r1, c2, r2 = c1, r1, c2, r2
+        
+        # Almacenar las puertas con el formato reorganizado
+        DOORS[(c1, r1, c2, r2)] = (c1, r1, c2, r2)
+        DOORS_CONNECTED[(c1, r1)] = (c2, r2)
+        DOORS_CONNECTED[(c2, r2)] = (c1, r1)
+        index += 1
+        
+    # Procesar puntos de entrada
+    ENTRANCES = []
+    for _ in range(4):  # 4 líneas de puntos de entrada
+        r, c = map(int, lines[index].strip().split())
+        ENTRANCES.append((r, c))
+        index += 1
+
+    return WALLS, FAKE_ALARMS, VICTIMS, FIRES, DOORS, DOORS_CONNECTED, ENTRANCES
+
 @app.route('/get_board', methods=['GET'])
 def get_board():
     file_path = './final.txt'  # Ruta del archivo
@@ -89,29 +146,14 @@ def get_board():
 
 @app.route('/run_simulation', methods=['GET'])
 def run_simulation():
-    # Procesar archivo para obtener configuración inicial
-    board_data = procesar_txt(FILE_PATH)
 
     # Configurar modelo
     random.seed(SEED)
-    walls = [[list(map(int, cell.values())) for cell in row] for row in board_data['walls']]
-    fake_alarms = [(item['row'], item['col']) for item in board_data['fake_alarms']]
-    victims = [(item['row'], item['col']) for item in board_data['victims']]
-    fires = [(item['row'], item['col']) for item in board_data['fires']]
-    doors = [(item['r1'], item['c1'], item['r2'], item['c2']) for item in board_data['doors']]
-    entrances = [(item['row'], item['col']) for item in board_data['entrances']]
+    WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt_sim(FILE_PATH)
 
-    model = MansionModel(
-        luigis=LUIGIS,
-        fake_alarms=fake_alarms,
-        victims=victims,
-        walls=walls,
-        doors=doors,
-        boo=fires,
-        entrances=entrances,
-        mode=DEVELOPMENT_MODE,
-        seed=SEED
-    )
+    model = MansionModel(LUIGIS, FAKE_ALARMS, 
+                         PORTRAITS, WALLS, DOORS, 
+                         GHOSTS, ENTRANCES, DEVELOPMENT_MODE, SEED)
 
     # Registrar agentes iniciales
     agents = [
