@@ -120,13 +120,14 @@ class LuigiAgent(Agent):
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar fuego en {position}.")
 
-    def extinguish_smoke(self, position):
+    def extinguish_smoke(self, position,reducing):
         """Extinguir humo en la posición dada."""
         if self.action_points >= 1:
             print(f"[DEBUG] Agente {self.unique_id} eliminando humo en {position}.")
             self.model.grid_details[position] -= 1   # Actualizar la celda a estado vacío
             self.action_points -= 1  # Reducir puntos de acción
-            self.action_history.append(f"Smoke extinguished at: {position}") 
+            if not reducing:
+                self.action_history.append(f"Smoke extinguished at: {position}") 
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar humo en {position}.")
 
@@ -227,10 +228,13 @@ class LuigiAgent(Agent):
                             if self.action_points >= 2:
                                 self.extinguish_fire(nearest_fire)
                             elif self.action_points == 1:
-                                self.extinguish_smoke(nearest_fire)
+                                reducing = True
+                                self.extinguish_smoke(nearest_fire,reducing)
                                 print(f"[DEBUG] Agente {self.unique_id} bajando fuego a humo . El fuego es : {nearest_fire}")
+                                self.action_history.append(f"Fire reduced to smoke at: {nearest_fire}")
                         elif fire_value == 1: # Si tiene puntos y es humo
-                            self.extinguish_smoke(nearest_fire)     
+                            reducing = False
+                            self.extinguish_smoke(nearest_fire,reducing)     
                         continue # Después de lidiar con el humo/fuego, sigue buscando otro
                 else:
                     # Si no hay fuego, el bombero se detiene

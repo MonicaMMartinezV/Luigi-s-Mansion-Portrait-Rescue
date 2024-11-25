@@ -698,6 +698,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rescuerPrefab: {fileID: 5446296260566650656, guid: b15e6c69dec30d34eae76b64b53c352b, type: 3}
   firefighterPrefab: {fileID: 5446296260566650656, guid: b15e6c69dec30d34eae76b64b53c352b, type: 3}
+  smokePrefab: {fileID: 8250760236512227353, guid: 07cc3064bfaee1b4a86cf6c08c43088a, type: 3}
   moveSpeed: 100
   simulationApiUrl: http://127.0.0.1:5000/run_simulation
   falseMaterial: {fileID: 2100000, guid: 6aa1182d9e8fccb4695db00ddc440ca8, type: 2}
