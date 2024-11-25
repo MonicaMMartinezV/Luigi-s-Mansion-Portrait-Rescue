@@ -42,12 +42,18 @@ class LuigiAgent(Agent):
 
             for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
                 neighbor = (current[0] + dx, current[1] + dy)
-                if neighbor not in self.model.grid_values or neighbor in cost_so_far:
+
+                # Check if the move is blocked by walls or doors
+                if self.model.check_collision_walls_doors(current, neighbor):
                     continue
+
+                if neighbor not in self.model.grid_details or neighbor in cost_so_far:
+                    continue
+
                 if not self.model.grid.is_cell_empty(neighbor):
                     continue
 
-                new_cost = cost_so_far[current] + self.model.grid_values.get(neighbor, 1)
+                new_cost = cost_so_far[current] + self.model.grid_details.get(neighbor, 1)
                 if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
                     cost_so_far[neighbor] = new_cost
                     priority = new_cost + min(self.heuristic(neighbor, goal) for goal in goals)
@@ -145,7 +151,7 @@ class LuigiAgent(Agent):
                 # Si lleva un retrato, moverse hacia la salida más cercana
                 valid_exits = [pos for pos in self.model.entrances if isinstance(pos, tuple) and len(pos) == 2]
                 if valid_exits:
-                    nearest_exit = min(valid_exits, key=self.heuristic)
+                    nearest_exit = min(valid_exits, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} lleva retrato. Moviéndose hacia la salida más cercana: {nearest_exit}")
                     if not self.move_towards(nearest_exit):  # Detenerse si no puede moverse
                         print(f"[DEBUG] Agente {self.unique_id} no puede moverse hacia {nearest_exit}.")
@@ -172,7 +178,7 @@ class LuigiAgent(Agent):
                     ]
                     if portraits:
                         # Encontrar el retrato más cercano usando Manhattan
-                        nearest_portrait = min(portraits, key=self.manhattan)
+                        nearest_portrait = min(portraits, key=lambda pos: self.heuristic(self.pos, pos))
                         print(f"[DEBUG] Agente {self.unique_id} buscando retrato. Moviéndose hacia el retrato más cercano: {nearest_portrait}")
                         if not self.move_towards(nearest_portrait):  # Si no puede moverse, detenerse
                             break
@@ -197,7 +203,7 @@ class LuigiAgent(Agent):
                 # Buscar la celda más cercana con humo (valor 1) o fuego (valor 2)
                 fire_cells = [pos for pos, value in self.model.grid_details.items() if value == 1 or value == 2]
                 if fire_cells:
-                    nearest_fire = min(fire_cells, key=self.heuristic)
+                    nearest_fire = min(fire_cells, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} buscando fuego. Moviéndose hacia el fuego más cercano: {nearest_fire}")
                     if not self.move_towards(nearest_fire):  # Si no puede moverse hacia el fuego, detenerse
                         break

@@ -2,7 +2,7 @@ from mesa import Model  # Define los agentes y el modelo base de la simulación
 from mesa.space import MultiGrid  # Permite colocar los agentes en una cuadrícula (multi o individual)
 from mesa.time import BaseScheduler
 from mesa.datacollection import DataCollector  # Recolecta y organiza datos de la simulación para análisis
-from LuigiAgent import LuigiAgent
+from LuigiAgentTest import LuigiAgent
 
 # Librerías matemáticas y generación de aleatoriedad
 import itertools  # Proporciona herramientas para crear combinaciones y permutaciones

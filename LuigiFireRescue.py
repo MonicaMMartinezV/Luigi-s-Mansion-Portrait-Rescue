@@ -23,7 +23,7 @@ import json  # Proporciona funciones para manejar datos en formato JSON, útil p
 import heapq
 from queue import Queue
 
-DEVELOPMENT_MODE = True
+DEVELOPMENT_MODE = False
 WAIT_TIME = 0.01
 SEED = 14
 
