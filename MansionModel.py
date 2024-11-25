@@ -441,7 +441,6 @@ class MansionModel(Model):
             print(f"  - Agente {agent.unique_id} ({agent.role}): {agent.action_points} de energía.")
         
         # Realizar procesos adicionales del modelo
-        self.spread_boos()
         self.process_flashover()
         self.add_portraits()
         self.update_simulation_status()

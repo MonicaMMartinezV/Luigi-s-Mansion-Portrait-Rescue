@@ -244,8 +244,11 @@ class LuigiAgent(Agent):
         elif self.role == "firefighter":
             self.firefighter_strategy()  # Ejecutar estrategia de apagar incendios
 
+        # Esparcir fuego
+        self.model.spread_boos()
+
         print(f"[DEBUG] Agente {self.unique_id} ({self.role}) termina su turno en posición {self.pos}. Energía restante: {self.action_points}.")
-        
+    
         # Restaurar la energía para el próximo turno
         self.action_points += 4
 
