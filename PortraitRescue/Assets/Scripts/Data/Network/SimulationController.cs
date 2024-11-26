@@ -135,8 +135,11 @@ public class SimulationController : MonoBehaviour
             case "smoke_to_fire":
                 HandleSmokeExtinguished(detail.position);
                 HandleFireAdded(detail.position);
-                break;
-            case 
+                break; 
+            case "open_door":
+                Debug.Log($"Detalles recibidos para OpenDoor - Position: {string.Join(", ", detail.position ?? new List<int>())}, Target: {string.Join(", ", detail.target ?? new List<int>())}");
+                HandleDoorOpened(detail.position, detail.target);
+                break; 
             default:
                 Debug.LogWarning($"Evento no manejado: {detail.type}");
                 break;
@@ -276,6 +279,105 @@ public class SimulationController : MonoBehaviour
         }
     }
 
+
+    void HandleDoorOpened(List<int> position, List<int> target)
+    {
+        if (position == null || position.Count < 2)
+        {
+            Debug.LogError("Position inválida o nula en HandleDoorOpened.");
+            return;
+        }
+
+        if (target == null || target.Count < 2)
+        {
+            Debug.LogError("Target inválido o nulo en HandleDoorOpened.");
+            return;
+        }
+
+        int xPos = position[0];
+        int yPos = position[1];
+        int xTarget = target[0];
+        int yTarget = target[1];
+
+        string doorTypeFromPosition = "";
+        string doorTypeFromTarget = "";
+
+        // Determinar el tipo de puerta en `position`
+        if (xPos == xTarget)  // Mismo X (Vertical)
+        {
+            if (yTarget < yPos)
+            {
+                doorTypeFromPosition = "UpperDoorWall";
+                doorTypeFromTarget = "BottomDoorWall";
+            }
+            else if (yTarget > yPos)
+            {
+                doorTypeFromPosition = "BottomDoorWall";
+                doorTypeFromTarget = "UpperDoorWall";
+            }
+        }
+        else if (yPos == yTarget)  // Mismo Y (Horizontal)
+        {
+            if (xTarget > xPos)
+            {
+                doorTypeFromPosition = "RightDoorWall";
+                doorTypeFromTarget = "LeftDoorWall";
+            }
+            else if (xTarget < xPos)
+            {
+                doorTypeFromPosition = "LeftDoorWall";
+                doorTypeFromTarget = "RightDoorWall";
+            }
+        }
+
+        Debug.Log($"Posición: ({xPos},{yPos}), Target: ({xTarget},{yTarget}), DoorTypeFromPosition: {doorTypeFromPosition}, DoorTypeFromTarget: {doorTypeFromTarget}");
+
+        // Abrir la puerta en "position"
+        GameObject floorPosition = GameObject.Find($"Floor ({xPos},{yPos})");
+        //GameObject doorPosition = GameObject.Find($"Puerta ({xPos}, {yPos})");
+        if (floorPosition != null)
+        {
+            Transform doorTransform = floorPosition.transform.Find(doorTypeFromPosition);
+            if (doorTransform != null)
+            {
+                Debug.Log($"Abriendo {doorTypeFromPosition} en Floor ({xPos},{yPos})");
+                // Iniciar la corutina para animar la puerta
+                StartCoroutine(AnimateDoorOpening(doorTransform.gameObject, 2f)); // 2 segundos de duración
+            }
+            else
+            {
+                Debug.LogWarning($"No se encontró el {doorTypeFromPosition} dentro de Floor ({xPos},{yPos}).");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró Floor en la posición ({xPos},{yPos}).");
+        }
+
+        // Abrir la puerta en "target"
+        GameObject floorTarget = GameObject.Find($"Floor ({xTarget},{yTarget})");
+        //GameObject doorTarget = GameObject.Find($"Puerta ({xTarget}, {yTarget})");
+
+        if (floorTarget != null)
+        {
+            Transform doorTransform = floorTarget.transform.Find(doorTypeFromTarget);
+            if (doorTransform != null)
+            {
+                Debug.Log($"Abriendo {doorTypeFromTarget} en Floor ({xTarget},{yTarget})");
+                // Iniciar la corutina para animar la puerta
+                StartCoroutine(AnimateDoorOpening(doorTransform.gameObject, 2f)); // 2 segundos de duración
+            }
+            else
+            {
+                Debug.LogWarning($"No se encontró el {doorTypeFromTarget} dentro de Floor ({xTarget},{yTarget}).");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
+        }
+    }
+
     void HandleAgentMove(Detail detail)
     {
         // Formar el nombre del agente usando el 'id' del agente
@@ -360,6 +462,32 @@ public class SimulationController : MonoBehaviour
         // Asegurar el tamaño y rotación finales
         ghost.transform.localScale = finalScale;
         ghost.transform.rotation = finalRotation;
+    }
+
+    IEnumerator AnimateDoorOpening(GameObject door, float duration)
+    {
+        float elapsedTime = 0f;
+
+        // Posiciones iniciales y finales
+        Vector3 startPosition = door.transform.position;
+        Vector3 targetPosition = startPosition + new Vector3(0, -10f, 0); // Cuánto baja la puerta
+
+        // Animar el traslado
+        while (elapsedTime < duration)
+        {
+            float t = elapsedTime / duration;
+
+            // Interpolación para el traslado
+            door.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+
+            elapsedTime += Time.deltaTime;
+
+            // Esperar el siguiente frame
+            yield return null;
+        }
+
+        // Asegurar la posición final
+        door.transform.position = targetPosition;
     }
 
 

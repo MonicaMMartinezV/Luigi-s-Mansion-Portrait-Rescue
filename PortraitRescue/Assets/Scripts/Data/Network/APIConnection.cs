@@ -408,7 +408,7 @@ public class APIConnection : MonoBehaviour
 
                 if (cell != null)
                 {
-                    Debug.Log($"Instanciando fake alarm en la celda: ({x + 1}, {y + 1})");
+                    Debug.Log($"Instanciando víctima en la celda: ({x + 1}, {y + 1})");
 
                     // Obtener la posición de la celda
                     Vector3 cellPosition = cell.transform.position;
