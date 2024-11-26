@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
+using System.IO;
 
 public class SimulationController : MonoBehaviour
 {
     public GameObject rescuerPrefab;
     public GameObject firefighterPrefab;
     public GameObject smokePrefab;
-
+    public GameObject portraitPrefab;
     public Material falseMaterial;
     public Material[] victimMaterials;
 
@@ -36,6 +37,7 @@ public class SimulationController : MonoBehaviour
             if (request.result == UnityWebRequest.Result.Success)
             {
                 string json = request.downloadHandler.text;
+
                 simulationData = JsonConvert.DeserializeObject<SimulationData>(json);
 
                 if (simulationData != null)
@@ -70,19 +72,31 @@ public class SimulationController : MonoBehaviour
 
     IEnumerator RunSimulation()
     {
+        int totalDetailsProcessed = 0;
+
         foreach (var step in simulationData.steps)
         {
-            Debug.Log($"Turno: {step.turn}");
+            Debug.Log($"Turno: {step.turn}, Total de detalles: {step.details.Count}");
+
             foreach (var detail in step.details)
             {
+                totalDetailsProcessed++;
+                Debug.Log($"Procesando detalle #{totalDetailsProcessed}: {detail.type}");
+
                 HandleDetail(detail);
                 yield return new WaitForSeconds(1f);
             }
         }
+
+        Debug.Log($"Simulación completada. Total de detalles procesados: {totalDetailsProcessed}");
     }
+
+
 
     void HandleDetail(Detail detail)
     {
+        Debug.Log($"Detalle actual: Tipo = {detail.type}");
+
         switch (detail.type)
         {
             case "agent_move":
@@ -96,6 +110,18 @@ public class SimulationController : MonoBehaviour
                 break;
             case "fire_extinguished":
                 HandleFireExtinguished(detail.position);
+                break;
+            case "portrait_added":
+                HandlePortraitAdded(detail.position);
+                break;
+            case "fire_removed_to_portrait":
+                HandleFireExtinguished(detail.position);
+                break;
+            case "rescued_portrait":
+                HandlePortraitRescued(detail);
+                break;
+            case "wall_destroyed":
+                HandleWallDestroyed(detail);
                 break;
             default:
                 Debug.LogWarning($"Evento no manejado: {detail.type}");
@@ -142,6 +168,81 @@ public class SimulationController : MonoBehaviour
         // Destruir el ghost después de la animación
         Destroy(ghost);
     }
+
+    void HandleWallDestroyed(Detail detail)
+    {
+
+        Debug.Log($"Detail: {detail}");
+        // Obtener las posiciones de "position" y "target"
+        List<int> position = detail.position;
+        List<int> target = detail.target;
+
+        // Obtener las coordenadas X e Y de ambas posiciones
+        int xPos = position[0];
+        int yPos = position[1];
+        int xTarget = target[0];
+        int yTarget = target[1];
+
+        // Calcular la dirección en la que se debe destruir el muro
+        string wallType = "";
+
+        // Verificar en qué dirección se encuentra el "target"
+        if (xPos == xTarget)  // Mismo X -> Vertical (arriba o abajo)
+        {
+            if (yTarget > yPos)
+            {
+                wallType = "UpperWall"; // El target está arriba, destruir "UpperWall"
+            }
+            else if (yTarget < yPos)
+            {
+                wallType = "BottomWall"; // El target está abajo, destruir "BottomWall"
+            }
+        }
+        else if (yPos == yTarget)  // Mismo Y -> Horizontal (izquierda o derecha)
+        {
+            if (xTarget > xPos)
+            {
+                wallType = "RightWall"; // El target está a la derecha, destruir "RightWall"
+            }
+            else if (xTarget < xPos)
+            {
+                wallType = "LeftWall"; // El target está a la izquierda, destruir "LeftWall"
+            }
+        }
+
+        // Depuración para mostrar las posiciones y el tipo de muro
+        Debug.Log($"Posición: ({xPos},{yPos}), Target: ({xTarget},{yTarget}), WallType: {wallType}");
+
+        // Buscar el objeto Floor(xPos, yPos)
+        GameObject floor = GameObject.Find($"Floor ({xPos},{yPos})");
+
+        if (floor != null)
+        {
+            Debug.Log($"Encontrado {floor.name} en la escena.");
+
+            // Buscar el objeto Wall dentro del Floor(xPos, yPos) con el nombre de wallType
+            Transform wallTransform = floor.transform.Find(wallType); // Buscar el objeto con el nombre wallType (UpperWall, BottomWall, etc.)
+
+            if (wallTransform != null)
+            {
+                // Si encontramos el objeto wall, destruirlo
+                GameObject wall = wallTransform.gameObject;
+                Debug.Log($"Destruyendo: {wall.name}");
+                Destroy(wall); // Destruir el muro
+            }
+            else
+            {
+                // Si no se encuentra el wall, imprimir un mensaje de advertencia
+                Debug.LogWarning($"No se encontró el {wallType} dentro de {floor.name}.");
+            }
+        }
+        else
+        {
+            // Si no se encuentra el Floor(xPos, yPos), imprimir un mensaje de advertencia
+            Debug.LogWarning($"No se encontró el objeto Floor ({xPos},{yPos}) en la escena.");
+        }
+    }
+
 
     void HandleAgentMove(Detail detail)
     {
@@ -237,6 +338,77 @@ public class SimulationController : MonoBehaviour
         {
             Debug.LogWarning($"No se encontró la celda en: ({x}, {y})");
         }
+    }
+
+    void HandlePortraitAdded(List<int> position)
+    {
+        // Verificar que la posición sea válida
+        if (position == null || position.Count < 2)
+        {
+            Debug.LogWarning("Posición inválida para agregar un retrato.");
+            return;
+        }
+
+        int x = position[0];
+        int y = position[1];
+
+        GameObject cell = GameObject.Find($"Floor ({x},{y})");
+
+        if (cell != null)
+        {
+            Debug.Log($"Instanciando retrato en la celda: ({x}, {y})");
+
+            // Obtener la posición de la celda
+            Vector3 cellPosition = cell.transform.position;
+
+            // Crear la nueva posición ajustada
+            float offsetX = 328.740082f - 321.393524f;
+            float offsetY = 42.9823837f - 0f;
+            float offsetZ = 32.2999992f - 34.7999992f;
+
+            Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
+            // Instanciar el prefab del retrato
+            GameObject portrait = Instantiate(portraitPrefab, adjustedPosition, Quaternion.Euler(-90, 0, -26.247f));
+
+            portrait.name = $"Portrait ({x},{y})";
+
+            // Iniciar la corutina para animar el crecimiento
+            StartCoroutine(AnimatePortraitGrowth(portrait, 1f)); // Duración de 1 segundo
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró la celda en: ({x}, {y})");
+        }
+    }
+
+    IEnumerator AnimatePortraitGrowth(GameObject portrait, float duration)
+    {
+        float elapsedTime = 0f;
+
+        // Tamaño inicial (pequeño)
+        Vector3 initialScale = Vector3.zero;
+
+        // Tamaño final (el tamaño original del prefab)
+        Vector3 finalScale = portrait.transform.localScale;
+
+        // Asegurarte de que el retrato comience desde el tamaño inicial
+        portrait.transform.localScale = initialScale;
+
+        // Animación de crecimiento
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsedTime / duration);
+
+            // Interpolar la escala del retrato
+            portrait.transform.localScale = Vector3.Lerp(initialScale, finalScale, t);
+
+            yield return null; // Esperar al siguiente frame
+        }
+
+        // Asegurarse de que la escala final sea precisa
+        portrait.transform.localScale = finalScale;
     }
 
     void HandleFireExtinguished(List<int> position)
@@ -358,6 +530,44 @@ public class SimulationController : MonoBehaviour
         }
     }
 
+    void HandlePortraitRescued(Detail detail)
+    {
+        // Construir el nombre del agente a partir del ID
+        string agentName = $"Agent_{detail.agent}";
+
+        // Buscar al agente en la escena por su nombre
+        GameObject agent = GameObject.Find(agentName);
+
+        if (agent == null)
+        {
+            Debug.LogWarning($"Agente con nombre {agentName} no encontrado.");
+            return;
+        }
+
+        // Buscar el retrato como hijo del agente
+        Transform portrait = null;
+
+        foreach (Transform child in agent.transform.GetComponentsInChildren<Transform>())
+        {
+            if (child.name.Contains("Portrait"))
+            {
+                portrait = child;
+                break; // Salir del bucle tras encontrarlo
+            }
+        }
+
+        if (portrait != null)
+        {
+            Debug.Log($"Retrato rescatado por {agent.name}. Destruyendo retrato: {portrait.name}");
+            Destroy(portrait.gameObject); // Eliminar el retrato
+        }
+        else
+        {
+            Debug.LogWarning($"El agente {agent.name} no tiene un retrato para rescatar.");
+        }
+    }
+
+
     Vector3 GetFloorPosition(int x, int y)
     {
         GameObject floor = GameObject.Find($"Floor ({x},{y})");
@@ -396,6 +606,7 @@ public class Detail
     public List<int> from;
     public List<int> to;
     public List<int> position;
+    public List<int> target;
     public string portrait_type;
     public List<int> at;
 }

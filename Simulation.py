@@ -164,34 +164,43 @@ def run_simulation():
         for agent in model.schedule.agents
     ]
 
+    # Inicializar eventos globales
+    global_events = set()
+
     # Simular turnos
     steps = []
-    while model.step_count <= 1000:
+    while not model.update_simulation_status():
         turn_data = {"turn": model.step_count, "details": []}
-        model.model_events.clear()  # Limpiar eventos previos del modelo
+        seen_events = set()  # Para evitar duplicados dentro del turno
 
         # Procesar turnos de agentes
         for agent in model.schedule.agents:
             agent.step()  # Los eventos se registran dinámicamente aquí
 
-        # Capturar todos los eventos generados durante el turno
-        turn_data["details"].extend(model.model_events)
-        steps.append(turn_data)
+        # Capturar y agregar eventos únicos del turno
+        for event in model.model_events:
+            event_tuple = tuple(sorted(event.items()))  # Ordenar para evitar duplicados por orden de claves
+            if event_tuple not in global_events:
+                global_events.add(event_tuple)  # Agregar solo si es nuevo
+                if event_tuple not in seen_events:  # Asegurar no repetir dentro del turno
+                    seen_events.add(event_tuple)
+                    turn_data["details"].append(event)  # Agregar evento único al turno
+
+        # Registrar el turno completo si hay eventos nuevos
+        if turn_data["details"]:
+            steps.append(turn_data)
 
         # Ejecutar el paso del modelo
         model.step()
 
-        # Verificar si la simulación debe detenerse
-        if model.update_simulation_status():
-            break
-
     # Respuesta completa
     response = {
         "agents": agents,
-        "steps": steps
+        "steps": steps,
+        "unique_events": [dict(e) for e in global_events]  # Convertir a lista de diccionarios
     }
     return jsonify(response)
 
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+

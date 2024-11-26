@@ -699,14 +699,15 @@ MonoBehaviour:
   rescuerPrefab: {fileID: 5446296260566650656, guid: b15e6c69dec30d34eae76b64b53c352b, type: 3}
   firefighterPrefab: {fileID: 5446296260566650656, guid: b15e6c69dec30d34eae76b64b53c352b, type: 3}
   smokePrefab: {fileID: 8250760236512227353, guid: 07cc3064bfaee1b4a86cf6c08c43088a, type: 3}
-  moveSpeed: 100
-  simulationApiUrl: http://127.0.0.1:5000/run_simulation
+  portraitPrefab: {fileID: 2214140215341374453, guid: 7688cbbbba40a8647a68007d0cfbab41, type: 3}
   falseMaterial: {fileID: 2100000, guid: 6aa1182d9e8fccb4695db00ddc440ca8, type: 2}
   victimMaterials:
   - {fileID: 2100000, guid: f6665c5a65528a540904052c0edc673b, type: 2}
   - {fileID: 2100000, guid: d0248d8b262c8ad4680c44d194ef4fb7, type: 2}
   - {fileID: 2100000, guid: 2a223b9e25bb70c49aa34bbd26453919, type: 2}
   - {fileID: 2100000, guid: 95e8338f19d43da4abbf13ce9c7cb16e, type: 2}
+  moveSpeed: 100
+  simulationApiUrl: http://127.0.0.1:5000/run_simulation
 --- !u!4 &375089072 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1381161402237107609, guid: 279882c5c3730784a8e47b21433d6e19, type: 3}

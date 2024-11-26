@@ -170,8 +170,8 @@ class MansionModel(Model):
     def add_portraits(self):
         """Agrega retratos si hay menos de 3 activos dentro del área central del grid."""
         active_points = sum(1 for portrait in self.portraits.values() if portrait in ["victim", "false_alarm"])
-        
-        if active_points < 3:
+        print(f"[DEBUG] Portraits en el tablero: {active_points}")
+        if active_points <= 3:
             needed_points = 3 - active_points
             new_points = 0
 
@@ -315,8 +315,8 @@ class MansionModel(Model):
                     print(f"[INFO] Pared destruida de {origin} a {target}")
                     self.log_event({
                         "type": "wall_destroyed",
-                        "from": origin,
-                        "to": target,
+                        "position": origin,
+                        "target": target,
                         "step": self.step_count
                     })
                 elif origin_counter[path_org]== "0" and target_counter[path_targ]== "0":
@@ -327,8 +327,9 @@ class MansionModel(Model):
                     self.grid_walls[target][1] = ''.join(target_counter)
                     print(f"[INFO] Daño registrado en {origin} y {target}")
                     self.log_event({
-                        "type": "damage_registered",
+                        "type": "damage_door",
                         "position": origin,
+                        "target":target,
                         "step": self.step_count
                     })
                 else:
@@ -371,7 +372,7 @@ class MansionModel(Model):
             self.grid_walls[origin][1] = ''.join(origin_counter)
             print(f"[INFO] Daño registrado en {origin}")
             self.log_event({
-                "type": "damage_registered",
+                "type": "damage_wall",
                 "position": origin,
                 "step": self.step_count
             })

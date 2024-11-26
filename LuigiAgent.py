@@ -105,7 +105,6 @@ class LuigiAgent(Agent):
             portrait = self.model.portraits[position]
             if portrait == "victim":
                 self.carrying_portrait = True  # El agente ahora lleva un retrato (víctima)
-                self.model.portraits[position] = None  # Eliminar la víctima rescatada
                 print(f"Agente {self.unique_id} ha encontrado una víctima en {position}.")
                 self.action_history.append(f"Portrait found at: {position}, Type: Victim")
                 self.model.log_event({
@@ -138,7 +137,7 @@ class LuigiAgent(Agent):
             self.model.log_event({
                     "type": "fire_extinguished",
                     "agent": self.unique_id,
-                    "at": position,
+                    "position": position,
             })
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar fuego en {position}.")
@@ -207,14 +206,15 @@ class LuigiAgent(Agent):
                     if self.pos == nearest_exit:
                         print(f"[DEBUG] Agente {self.unique_id} ha llegado a la salida con el retrato.")
                         self.action_history.append(f"Portrait rescued at: {nearest_exit}") 
-                        self.model.log_event({
-                            "type": "rescued_portrait",
-                            "agent": self.unique_id,
-                            "at": nearest_exit,
-                        })
                         self.carrying_portrait = False  # Resetear estatus de
                         self.model.rescued += 1  # Contar el rescate en el modelo
                         print(f"[DEBUG] Agente {self.unique_id} ha rescatado a una víctima. Total rescatados: {self.model.rescued}")
+                        self.model.log_event({
+                            "type": "rescued_portrait",
+                            "agent": self.unique_id,
+                            "position": nearest_exit,
+                            "rescued": self.model.rescued
+                        })
 
                 else:
                     print(f"[ERROR] No hay salidas válidas para el agente {self.unique_id}. Terminando turno.")
