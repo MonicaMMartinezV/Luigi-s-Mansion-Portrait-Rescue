@@ -224,7 +224,7 @@ class MansionModel(Model):
                         print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
 
                     # Agregar un nuevo retrato (víctima o falsa alarma)
-                    portrait_type = "victim" if random.choice([True, False]) else "false_alarm"
+                    portrait_type = "victim" 
                     self.portraits[candidate_point] = portrait_type
                     self.grid_details[candidate_point] = 0
                     new_points += 1
@@ -532,5 +532,4 @@ class MansionModel(Model):
         
         # Realizar procesos adicionales del modelo
         self.process_flashover()
-        self.add_portraits()
         self.update_simulation_status()

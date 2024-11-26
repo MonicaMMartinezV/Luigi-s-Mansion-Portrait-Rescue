@@ -331,6 +331,7 @@ class LuigiAgent(Agent):
     def break_wall(self):
       break_wall= False
       self.action_points -= 2
+      self.model.damage_counter +=2
 
     def open_door(self,coord1, coord2):
       if coord1 in self.model.exit_positions and coord2 in self.model.exit_positions:
@@ -358,8 +359,8 @@ class LuigiAgent(Agent):
         print(f"[DEBUG] Agente {self.unique_id} ({self.role}) termina su turno en posición {self.pos}. Energía restante: {self.action_points}.")
         
         # Esparcir fuego
+        self.model.add_portraits()
         self.model.spread_boos()
-
         # Restaurar la energía para el próximo turno
         self.action_points += 4
 
