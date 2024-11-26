@@ -80,6 +80,11 @@ class LuigiAgent(Agent):
         if path:
             next_step = path[0]
             print(f"Agente {self.unique_id} se mueve de {self.pos} a {next_step}.")
+            self.model.log_event({
+                "type": "agent_move",
+                "from": self.pos,
+                "to": next_step,
+            })
             self.model.grid.move_agent(self, next_step)
             self.pos = next_step
             self.history.append(self.pos)
@@ -102,11 +107,21 @@ class LuigiAgent(Agent):
                 self.model.portraits[position] = None  # Eliminar la víctima rescatada
                 print(f"Agente {self.unique_id} ha encontrado una víctima en {position}.")
                 self.action_history.append(f"Portrait found at: {position}, Type: Victim")
+                self.model.log_event({
+                    "type": "found_portrait",
+                    "at": position,
+                    "portrait_type": "Victim",
+                })
                 return {"position": position, "type": "victim"}  # Retorna detalles
             elif portrait == "false_alarm":
                 self.model.portraits[position] = None  # Eliminar la falsa alarma
                 print(f"Agente {self.unique_id} encontró una falsa alarma en {position}.")
                 self.action_history.append(f"Portrait found at: {position}, Type: False")
+                self.model.log_event({
+                    "type": "found_portrait",
+                    "at": position,
+                    "portrait_type": "False",
+                })
                 return {"position": position, "type": "false_alarm"}  # Retorna detalles
         return None  # Si no hay retrato en esa posición
 
@@ -117,6 +132,10 @@ class LuigiAgent(Agent):
             self.model.grid_details[position] = 0  # Actualizar la celda a estado vacío
             self.action_points -= 2  # Reducir puntos de acción
             self.action_history.append(f"Fire extinguished at: {position}") 
+            self.model.log_event({
+                    "type": "fire_extinguished",
+                    "at": position,
+            })
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar fuego en {position}.")
 
@@ -128,6 +147,10 @@ class LuigiAgent(Agent):
             self.action_points -= 1  # Reducir puntos de acción
             if not reducing:
                 self.action_history.append(f"Smoke extinguished at: {position}") 
+                self.model.log_event({
+                    "type": "smoke_extinguished",
+                    "at": position,
+            })
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar humo en {position}.")
 
@@ -151,6 +174,11 @@ class LuigiAgent(Agent):
         self.history.append(self.pos)
 
         print(f"[DEBUG] Agente {self.unique_id} se mueve dentro del cuadrante central en {self.pos}.")
+        self.model.log_event({
+                "type": "agent_move",
+                "from": self.pos,
+                "to": next_step,
+        })
 
     def rescuer_strategy(self):
         """Estrategia para agentes cuyo rol es rescatar víctimas."""
@@ -173,6 +201,10 @@ class LuigiAgent(Agent):
                     if self.pos == nearest_exit:
                         print(f"[DEBUG] Agente {self.unique_id} ha llegado a la salida con el retrato.")
                         self.action_history.append(f"Portrait rescued at: {nearest_exit}") 
+                        self.model.log_event({
+                            "type": "rescued_portrait",
+                            "at": nearest_exit,
+                        })
                         self.carrying_portrait = False  # Resetear estatus de
                         self.model.rescued += 1  # Contar el rescate en el modelo
                         print(f"[DEBUG] Agente {self.unique_id} ha rescatado a una víctima. Total rescatados: {self.model.rescued}")
@@ -232,6 +264,10 @@ class LuigiAgent(Agent):
                                 self.extinguish_smoke(nearest_fire,reducing)
                                 print(f"[DEBUG] Agente {self.unique_id} bajando fuego a humo . El fuego es : {nearest_fire}")
                                 self.action_history.append(f"Fire reduced to smoke at: {nearest_fire}")
+                                self.model.log_event({
+                                    "type": "fire_reduces",
+                                    "at": nearest_fire
+                                })
                         elif fire_value == 1: # Si tiene puntos y es humo
                             reducing = False
                             self.extinguish_smoke(nearest_fire,reducing)     
@@ -244,13 +280,29 @@ class LuigiAgent(Agent):
     def step(self):
         """Función que ejecuta el paso de un agente."""
         print(f"\n[DEBUG] Agente {self.unique_id} ({self.role}) inicia su turno en posición {self.pos}. Energía inicial: {self.action_points}.")
-        
+        self.model.log_event({
+            "type": "agent_turn_start",
+            "id": self.unique_id,
+            "role": self.role,
+            "position": self.pos,
+            "action_points": self.action_points
+        })
+            
         if self.role == "rescuer":
             self.rescuer_strategy()  # Ejecutar estrategia de rescate
         elif self.role == "firefighter":
             self.firefighter_strategy()  # Ejecutar estrategia de apagar incendios
 
+        self.model.log_event({
+            "type": "agent_turn_end",
+            "id": self.unique_id,
+            "role": self.role,
+            "position": self.pos,
+            "remaining_action_points": self.action_points
+        })
+
         # Esparcir fuego
+        self.model.add_portraits()
         self.model.spread_boos()
 
         print(f"[DEBUG] Agente {self.unique_id} ({self.role}) termina su turno en posición {self.pos}. Energía restante: {self.action_points}.")

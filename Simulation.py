@@ -168,51 +168,20 @@ def run_simulation():
     steps = []
     while model.step_count <= 1000:
         turn_data = {"turn": model.step_count, "details": []}
+        model.model_events.clear()  # Limpiar eventos previos del modelo
 
-        agent_moves = []
-        model.model_events.clear()  # Limpiar eventos previos
-
-        # Procesar movimientos y acciones de agentes
+        # Procesar turnos de agentes
         for agent in model.schedule.agents:
-            path = []
-            actions = []
+            agent.step()  # Los eventos se registran dinámicamente aquí
 
-            # Ejecutar el turno del agente
-            agent.step()
-            path.extend(agent.history)
-            actions.extend(agent.action_history)
-
-            # Verificar si recogió un retrato
-            portrait_details = agent.examine_portrait(agent.pos)
-            if portrait_details:
-                actions.append(f"picked_up_{portrait_details['type']}_at_{portrait_details['position']}")
-
-            # Agregar movimientos de cada agente
-            agent_moves.append({
-                "type": "agent_move",
-                "data": {
-                    "id": agent.unique_id,
-                    "path": path,
-                    "actions": actions
-                }
-            })
-
-        # Alternar entre movimientos de agentes y eventos del modelo
-        max_len = max(len(agent_moves), len(model.model_events))
-        for i in range(max_len):
-            if i < len(agent_moves):
-                turn_data["details"].append(agent_moves[i])
-            if i < len(model.model_events):
-                turn_data["details"].append({
-                    "type": "model_event",
-                    "data": model.model_events[i]
-                })
-
-        # Agregar datos del turno al historial
+        # Capturar todos los eventos generados durante el turno
+        turn_data["details"].extend(model.model_events)
         steps.append(turn_data)
 
         # Ejecutar el paso del modelo
         model.step()
+
+        # Verificar si la simulación debe detenerse
         if model.update_simulation_status():
             break
 
@@ -222,6 +191,7 @@ def run_simulation():
         "steps": steps
     }
     return jsonify(response)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

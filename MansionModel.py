@@ -182,12 +182,13 @@ class MansionModel(Model):
 
             while new_points < needed_points:
                 candidate_point = random.choice(central_area)
+                reduced = False
                 if candidate_point not in self.portraits:
                     if self.grid_details.get(candidate_point) in [1, 2]:  # 1 para humo, 2 para fuego
                         # Eliminar fuego o humo y colocar el retrato en su lugar
                         self.grid_details[candidate_point] = 0  # Eliminar humo/fuego
+                        reduced = True
                         print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
-
                     # Agregar un nuevo retrato (víctima o falsa alarma)
                     portrait_type = "victim" if random.choice([True, False]) else "false_alarm"
                     self.portraits[candidate_point] = portrait_type
@@ -200,6 +201,13 @@ class MansionModel(Model):
                         "portrait_type": portrait_type,
                         "step": self.step_count
                     })
+                    if reduced:
+                        self.log_event({
+                            "type": "fire_removed_to_portrait",
+                            "position": candidate_point,
+                            "portrait_type": portrait_type,
+                            "step": self.step_count
+                        })
 
     def spread_boos(self):
         """Extiende la presencia de fantasmas únicamente dentro del área central del grid."""
@@ -228,7 +236,7 @@ class MansionModel(Model):
                 self.grid_details[target_pos] = 2
                 print(f"[INFO] Nuevo fuego agregado en {target_pos}")
                 self.log_event({
-                    "type": "fire_added",
+                    "type": "fire_to_smoke",
                     "position": target_pos,
                     "step": self.step_count
                 })
@@ -243,11 +251,18 @@ class MansionModel(Model):
                             else:
                                 self.grid_details[neighbor] = 2
                                 self.boo_zones.append(neighbor)
-                                print(f"[INFO] Nuevo fuego extendido de {target_pos} a {neighbor}")
-                                self.log_event({
-                                    "type": "fire_extended",
-                                    "from": target_pos,
-                                    "to": neighbor,
+                                if self.grid_details.get(neighbor) == 0:
+                                    print(f"[INFO] Nuevo fuego extendido de {target_pos} a {neighbor}")
+                                    self.log_event({
+                                        "type": "fire_extended",
+                                        "from": target_pos,
+                                        "to": neighbor,
+                                        "step": self.step_count
+                                    })
+                                if self.grid_details.get(neighbor) == 1:
+                                    self.log_event({
+                                    "type": "smoke_added",
+                                    "position": target_pos,
                                     "step": self.step_count
                                 })
                         elif self.grid_details.get(neighbor) == 2:
@@ -385,10 +400,17 @@ class MansionModel(Model):
                     self.grid_details[exp_neighbor] = 2
                     self.boo_zones.append(exp_neighbor)
                     print(f"[INFO] Nuevo fuego extendido de {target} a {exp_neighbor}")
-                    self.log_event({
-                        "type": "fire_extended",
-                        "from": target,
-                        "to": exp_neighbor,
+                    if self.grid_details.get(exp_neighbor) == 0:
+                        self.log_event({
+                            "type": "fire_extended",
+                            "from": target,
+                            "to": exp_neighbor,
+                            "step": self.step_count
+                        })
+                    if self.grid_details.get(exp_neighbor) == 1:
+                        self.log_event({
+                        "type": "fire_to_smoke",
+                        "position": exp_neighbor,
                         "step": self.step_count
                     })
                     break
