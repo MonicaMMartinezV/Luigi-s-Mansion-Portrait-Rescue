@@ -111,7 +111,7 @@ LUIGIS = 6
 WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt(file_path)
 
 # Definir el número de simulaciones que quieres ejecutar
-NUM_SIMULACIONES = 100
+NUM_SIMULACIONES = 10
 
 # Para almacenar los resultados de cada simulación
 resultados_simulaciones = []
@@ -150,8 +150,9 @@ for sim in range(NUM_SIMULACIONES):
         "steps": steps,
         # Changed the attributes to match the MansionModel class definition
         "damage": model.damage_counter,
-        "total_deaths": model.losses,
-        "saved_victims": model.rescued
+        "total_deaths": model.casualties,
+        "saved_victims": model.rescued,
+        "state": model.simulation_status
     }
     resultados_simulaciones.append(resultado)
 
@@ -160,7 +161,7 @@ for sim in range(NUM_SIMULACIONES):
     print(f"Number of steps: {steps}")
     # Changed the attributes to match the MansionModel class definition
     print(f"Damage: {model.damage_counter}")
-    print(f"Deaths: {model.losses}")
+    print(f"Deaths: {model.casualties}")
     print(f"Saved Victims: {model.rescued}")
     if model.damage_counter >= 24:
         print("MANSION TAKEN OVER")
@@ -179,3 +180,4 @@ for resultado in resultados_simulaciones:
     print(f"  Damage: {resultado['damage']}")
     print(f"  Deaths: {resultado['total_deaths']}")
     print(f"  Saved Victims: {resultado['saved_victims']}")
+    print(f"  HUH: {resultado['state']}")
