@@ -34,6 +34,10 @@
 * Added call to check_collision in move function for agent (24/11/2024)
 * Added check for doors as viable paths to check_collision (24/11/2024)
 * Added funtionalities of A* and heuritic using manhattan (25/11/2024)
+* Added new funtionalities to open, close doors and new funtionalities in check walls and doors (26/11/2024)
+* Added new funtionalities to break walls and check collision walls and doors (26/11/2024)
+* Added log messages to agent actions for Unity to interpret (26/11/2024)
+* Added distinction between extinguishing smoke and reducing fire to smoke (26/11/2024)
 
 ### Changed
 
@@ -58,10 +62,15 @@
 * Modified portrait spawning to extinguish fire/smoke if needed (22/11/2024)
 * Modified funtionality of spread boos/fire to adequate to the explosion funtionality (24/11/2024)
 * Modified fire-starting function to activate after every agent step (25/11/2024)
+* Modified funtionalities in A*, heuristic and some other (26/11/2024)
+* Modified funcionalities in A* and move towards (26/11/2024)
+* Modified dynamic of rescuer and firefighter (26/11/2024)
+
 
 ### Deprecated
 
 * Restarted Model and Agent (20/11/2024)
+* Deleted check walls
 
 ### Fixed
 
@@ -77,6 +86,8 @@
 * Fixed spawn portraits (24/11/2024)
 * Instatite only one wall in Unity (24/11/2024)
 * Fixed of movement of firefighter and rescuer (25/11/2024)
+* Fixed the A* funtion and check walls (26/11/2024)
+* Fixed Simulation process (26/11/2024)
 
 ### Security
 

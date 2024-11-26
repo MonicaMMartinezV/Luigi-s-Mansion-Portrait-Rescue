@@ -1,5 +1,5 @@
 from MansionModel import MansionModel
-from LuigiAgent import LuigiAgent
+from LuigiAgentTest import LuigiAgent
 
 # Librerías de visualización y gráficos
 import matplotlib.pyplot as plt  # Creación y personalización de gráficos
@@ -19,13 +19,13 @@ import time  # Proporciona funciones para trabajar con fechas y horas
 from http.server import BaseHTTPRequestHandler, HTTPServer  # Implementa un servidor HTTP básico para manejar solicitudes
 import logging  # Registro de eventos y errores del servidor, útil para el diagnóstico
 import json  # Proporciona funciones para manejar datos en formato JSON, útil para comunicación entre aplicaciones
-
+import random
+import time
 import heapq
 from queue import Queue
 
-DEVELOPMENT_MODE = True
+DEVELOPMENT_MODE = False
 WAIT_TIME = 0.01
-SEED = 14
 
 def procesar_txt(file_path):
     with open(file_path, 'r') as file:
@@ -117,6 +117,10 @@ NUM_SIMULACIONES = 1
 resultados_simulaciones = []
 
 for sim in range(NUM_SIMULACIONES):
+    SEED = 14
+    # SEED = int(time.time()) + sim  # Usa el tiempo actual más el número de simulación para mayor aleatoriedad
+    # random.seed(SEED)  # Establece la semilla para la generación de números aleatorios en Python
+    # np.random.seed(SEED)  # Establece la semilla para NumPy (si se usa para aleatoriedad)
     print(f"\n--- Simulación {sim + 1} ---")
     model = MansionModel(LUIGIS, FAKE_ALARMS, 
                          PORTRAITS, WALLS, DOORS, 
@@ -147,8 +151,9 @@ for sim in range(NUM_SIMULACIONES):
         "steps": steps,
         # Changed the attributes to match the MansionModel class definition
         "damage": model.damage_counter,
-        "total_deaths": model.losses,
-        "saved_victims": model.rescued
+        "total_deaths": model.casualties,
+        "saved_victims": model.rescued,
+        "state": model.simulation_status
     }
     resultados_simulaciones.append(resultado)
 
@@ -157,7 +162,7 @@ for sim in range(NUM_SIMULACIONES):
     print(f"Number of steps: {steps}")
     # Changed the attributes to match the MansionModel class definition
     print(f"Damage: {model.damage_counter}")
-    print(f"Deaths: {model.losses}")
+    print(f"Deaths: {model.casualties}")
     print(f"Saved Victims: {model.rescued}")
     if model.damage_counter >= 24:
         print("MANSION TAKEN OVER")
@@ -176,3 +181,4 @@ for resultado in resultados_simulaciones:
     print(f"  Damage: {resultado['damage']}")
     print(f"  Deaths: {resultado['total_deaths']}")
     print(f"  Saved Victims: {resultado['saved_victims']}")
+    print(f"  HUH: {resultado['state']}")
