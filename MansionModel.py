@@ -167,36 +167,74 @@ class MansionModel(Model):
         for boo_zone in self.boo_zones:
             print(f"  - {boo_zone}")
 
-        # Ajustar posiciones de agentes para colocarlos justo afuera del grid
         def adjust_position_outside_grid(x, y, grid_width, grid_height):
-            # Revisar si la entrada está en un borde y mover fuera del grid
+            # Ajusta la posición para que esté justo afuera del grid
             if y == 1:  # Borde superior
                 return (x, 0)
             elif x == 1:  # Borde izquierdo
                 return (0, y)
             elif x == grid_width - 2:  # Borde derecho
-                return (grid_width-1, y)
+                return (grid_width - 1, y)
             elif y == grid_height - 2:  # Borde inferior
-                return (x, grid_height-1)
-            return (x, y)  # Si no es un borde, no se ajusta (esto no debería ocurrir)
+                return (x, grid_height - 1)
+            return (x, y)  # Si no está en un borde, no se ajusta (esto no debería ocurrir)
 
-        # Aplicar la lógica de ajuste dinámico
-        agent_cy = itertools.cycle([
+        # Ajuste de las posiciones de las entradas fuera del grid
+        adjusted_positions = [
             adjust_position_outside_grid(x, y, self.grid_width, self.grid_height) 
             for x, y in self.entrances
-        ])
+        ]
 
-        # Agregar agentes Luigi con roles alternados
-        agent_roles = ["rescuer", "firefighter"]
-        agent_role_cycle = itertools.cycle(agent_roles)
-        for idx in range(luigis):
-            position = next(agent_cy)
-            role = next(agent_role_cycle)
+        # Crear un ciclo de roles alternados
+        agent_roles = itertools.cycle(["rescuer", "firefighter"])
+
+        # Agregar los agentes en las posiciones
+        total_agents = luigis
+        idx = 0  # Índice para los agentes
+
+        # Asignar agentes a cada entrada
+        for i, position in enumerate(adjusted_positions):
+            if total_agents == 0:
+                break  # Si no quedan más agentes, salir del bucle
+
+            # Asignar un agente "rescuer" en esta posición
+            role = "rescuer"
             agent = LuigiAgent(idx, self, role)
             agent.unique_id = idx
             self.grid.place_agent(agent, position)
             self.schedule.add(agent)
             print(f"Agente {idx} con rol {role} colocado en posición {position}")
+            total_agents -= 1
+            idx += 1  # Incrementar el índice de agente
+
+            if total_agents == 0:
+                break  # Si ya no quedan más agentes, salir del bucle
+
+            # Asignar un agente "firefighter" en la siguiente posición, separada
+            next_position = adjusted_positions[(i + 1) % len(adjusted_positions)]  # Usar la siguiente posición
+            role = "firefighter"
+            agent = LuigiAgent(idx, self, role)
+            agent.unique_id = idx
+            self.grid.place_agent(agent, next_position)
+            self.schedule.add(agent)
+            print(f"Agente {idx} con rol {role} colocado en posición {next_position}")
+            total_agents -= 1
+            idx += 1  # Incrementar el índice de agente
+
+        # Si hay más agentes que posiciones de entrada
+        if total_agents > 0:
+            for _ in range(total_agents):
+                position = adjusted_positions[idx % len(adjusted_positions)]
+                role = next(agent_roles)
+                agent = LuigiAgent(idx, self, role)
+                agent.unique_id = idx
+                self.grid.place_agent(agent, position)
+                self.schedule.add(agent)
+                print(f"Agente {idx} con rol {role} colocado en posición {position}")
+                idx += 1
+
+
+
 
     def log_event(self, event):
         """Agrega un evento al registro del modelo."""
