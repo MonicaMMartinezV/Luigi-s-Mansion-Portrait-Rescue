@@ -83,13 +83,20 @@ class LuigiAgent(Agent):
         combined_possn = start + next
         combined_posns = next + start
 
-        wall_blocked = direction != None and self.model.grid_walls[start][0][direction] == '1'
-        
-        if (combined_possn in self.model.exit_positions or \
+        # Verifica si la posición 'start' está en el grid_walls
+        if start in self.model.grid_walls:
+            wall_blocked = direction is not None and self.model.grid_walls[start][0][direction] == '1'
+        else:
+            wall_blocked = False  # No hay colisión si la posición no está en el grid
+
+        # Comprueba si la posición combinada está en las salidas
+        if (combined_possn in self.model.exit_positions or 
             combined_posns in self.model.exit_positions):
-            wall_blocked = False
+            wall_blocked = False  # No bloquear si está en una posición de salida
+        
         return wall_blocked
-    
+
+
     def check_collision_doors(self, start, next):
         """Verifica si hay una colisión entre dos posiciones."""
         combined_possn = start + next

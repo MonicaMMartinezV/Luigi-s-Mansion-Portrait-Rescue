@@ -19,13 +19,13 @@ import time  # Proporciona funciones para trabajar con fechas y horas
 from http.server import BaseHTTPRequestHandler, HTTPServer  # Implementa un servidor HTTP básico para manejar solicitudes
 import logging  # Registro de eventos y errores del servidor, útil para el diagnóstico
 import json  # Proporciona funciones para manejar datos en formato JSON, útil para comunicación entre aplicaciones
-
+import random
+import time
 import heapq
 from queue import Queue
 
 DEVELOPMENT_MODE = False
 WAIT_TIME = 0.01
-SEED = 14
 
 def procesar_txt(file_path):
     with open(file_path, 'r') as file:
@@ -111,12 +111,15 @@ LUIGIS = 6
 WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt(file_path)
 
 # Definir el número de simulaciones que quieres ejecutar
-NUM_SIMULACIONES = 1
+NUM_SIMULACIONES = 100
 
 # Para almacenar los resultados de cada simulación
 resultados_simulaciones = []
 
 for sim in range(NUM_SIMULACIONES):
+    SEED = int(time.time()) + sim  # Usa el tiempo actual más el número de simulación para mayor aleatoriedad
+    random.seed(SEED)  # Establece la semilla para la generación de números aleatorios en Python
+    np.random.seed(SEED)  # Establece la semilla para NumPy (si se usa para aleatoriedad)
     print(f"\n--- Simulación {sim + 1} ---")
     model = MansionModel(LUIGIS, FAKE_ALARMS, 
                          PORTRAITS, WALLS, DOORS, 
