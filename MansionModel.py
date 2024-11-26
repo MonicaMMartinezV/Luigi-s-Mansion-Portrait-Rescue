@@ -186,6 +186,7 @@ class MansionModel(Model):
                     if self.grid_details.get(candidate_point) in [1, 2]:  # 1 para humo, 2 para fuego
                         # Eliminar fuego o humo y colocar el retrato en su lugar
                         self.grid_details[candidate_point] = 0  # Eliminar humo/fuego
+                        reduced = True
                         print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
                     # Agregar un nuevo retrato (víctima o falsa alarma)
                     portrait_type = "victim" 
@@ -199,6 +200,13 @@ class MansionModel(Model):
                         "portrait_type": portrait_type,
                         "step": self.step_count
                     })
+                    if reduced:
+                        self.log_event({
+                            "type": "fire_removed_to_portrait",
+                            "position": candidate_point,
+                            "portrait_type": portrait_type,
+                            "step": self.step_count
+                        })
 
     def spread_boos(self):
         """Extiende la presencia de fantasmas únicamente dentro del área central del grid."""
