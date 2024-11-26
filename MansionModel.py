@@ -208,7 +208,7 @@ class MansionModel(Model):
     def add_portraits(self):
         """Agrega retratos si hay menos de 3 activos dentro del área central del grid."""
         active_points = sum(1 for portrait in self.portraits.values() if portrait in ["victim", "false_alarm"])
-        
+        reduced = False
         if active_points < 3:
             needed_points = 3 - active_points
             new_points = 0
@@ -238,13 +238,13 @@ class MansionModel(Model):
                         "portrait_type": portrait_type,
                         "step": self.step_count
                     })
-                    if reduced:
-                        self.log_event({
-                            "type": "fire_removed_to_portrait",
-                            "position": candidate_point,
-                            "portrait_type": portrait_type,
-                            "step": self.step_count
-                        })
+            if reduced:
+                self.log_event({
+                    "type": "fire_removed_to_portrait",
+                    "position": candidate_point,
+                    "portrait_type": portrait_type,
+                    "step": self.step_count
+                })
 
     def spread_boos(self):
         """Extiende la presencia de fantasmas únicamente dentro del área central del grid."""
