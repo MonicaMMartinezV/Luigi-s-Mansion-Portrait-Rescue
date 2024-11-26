@@ -82,6 +82,7 @@ class LuigiAgent(Agent):
             print(f"Agente {self.unique_id} se mueve de {self.pos} a {next_step}.")
             self.model.log_event({
                 "type": "agent_move",
+                "agent": self.unique_id,
                 "from": self.pos,
                 "to": next_step,
             })
@@ -110,6 +111,7 @@ class LuigiAgent(Agent):
                 self.model.log_event({
                     "type": "found_portrait",
                     "at": position,
+                    "agent": self.unique_id,
                     "portrait_type": "Victim",
                 })
                 return {"position": position, "type": "victim"}  # Retorna detalles
@@ -120,6 +122,7 @@ class LuigiAgent(Agent):
                 self.model.log_event({
                     "type": "found_portrait",
                     "at": position,
+                    "agent": self.unique_id,
                     "portrait_type": "False",
                 })
                 return {"position": position, "type": "false_alarm"}  # Retorna detalles
@@ -134,6 +137,7 @@ class LuigiAgent(Agent):
             self.action_history.append(f"Fire extinguished at: {position}") 
             self.model.log_event({
                     "type": "fire_extinguished",
+                    "agent": self.unique_id,
                     "at": position,
             })
         else:
@@ -149,6 +153,7 @@ class LuigiAgent(Agent):
                 self.action_history.append(f"Smoke extinguished at: {position}") 
                 self.model.log_event({
                     "type": "smoke_extinguished",
+                    "agent": self.unique_id,
                     "at": position,
             })
         else:
@@ -177,6 +182,7 @@ class LuigiAgent(Agent):
         self.model.log_event({
                 "type": "agent_move",
                 "from": self.pos,
+                "agent": self.unique_id,
                 "to": next_step,
         })
 
@@ -203,6 +209,7 @@ class LuigiAgent(Agent):
                         self.action_history.append(f"Portrait rescued at: {nearest_exit}") 
                         self.model.log_event({
                             "type": "rescued_portrait",
+                            "agent": self.unique_id,
                             "at": nearest_exit,
                         })
                         self.carrying_portrait = False  # Resetear estatus de
@@ -266,6 +273,7 @@ class LuigiAgent(Agent):
                                 self.action_history.append(f"Fire reduced to smoke at: {nearest_fire}")
                                 self.model.log_event({
                                     "type": "fire_reduces",
+                                    "agent": self.unique_id,
                                     "at": nearest_fire
                                 })
                         elif fire_value == 1: # Si tiene puntos y es humo
@@ -282,7 +290,7 @@ class LuigiAgent(Agent):
         print(f"\n[DEBUG] Agente {self.unique_id} ({self.role}) inicia su turno en posición {self.pos}. Energía inicial: {self.action_points}.")
         self.model.log_event({
             "type": "agent_turn_start",
-            "id": self.unique_id,
+            "agent": self.unique_id,
             "role": self.role,
             "position": self.pos,
             "action_points": self.action_points
@@ -295,7 +303,7 @@ class LuigiAgent(Agent):
 
         self.model.log_event({
             "type": "agent_turn_end",
-            "id": self.unique_id,
+            "agent": self.unique_id,
             "role": self.role,
             "position": self.pos,
             "remaining_action_points": self.action_points

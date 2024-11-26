@@ -3,24 +3,22 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
-using System;
 
 public class SimulationController : MonoBehaviour
 {
-    public GameObject rescuerPrefab;     // Prefab para rescatistas
-    public GameObject firefighterPrefab; // Prefab para bomberos
-    public GameObject smokePrefab; // Prefab para el humo
+    public GameObject rescuerPrefab;
+    public GameObject firefighterPrefab;
+    public GameObject smokePrefab;
 
-    public float moveSpeed = 100f;
-    private Dictionary<int, GameObject> agents = new Dictionary<int, GameObject>();
-    private Dictionary<int, Vector3> agentPositions = new Dictionary<int, Vector3>(); // Para almacenar las posiciones de los agentes
-
-    [Header("API Config")]
-    public string simulationApiUrl = "http://127.0.0.1:5000/run_simulation"; // Cambia la URL a tu servidor
-
-    [Header("Portrait Settings")]
     public Material falseMaterial;
     public Material[] victimMaterials;
+
+    public float moveSpeed = 5f;
+
+    private Dictionary<int, GameObject> agents = new Dictionary<int, GameObject>();
+    private Dictionary<int, Vector3> agentPositions = new Dictionary<int, Vector3>();
+
+    public string simulationApiUrl = "http://127.0.0.1:5000/run_simulation";
 
     private SimulationData simulationData;
 
@@ -38,8 +36,6 @@ public class SimulationController : MonoBehaviour
             if (request.result == UnityWebRequest.Result.Success)
             {
                 string json = request.downloadHandler.text;
-                Debug.Log("Datos recibidos: " + json);
-
                 simulationData = JsonConvert.DeserializeObject<SimulationData>(json);
 
                 if (simulationData != null)
@@ -61,14 +57,14 @@ public class SimulationController : MonoBehaviour
 
     void InitializeAgents()
     {
-        foreach (var agentData in simulationData.agents)
+        foreach (var agent in simulationData.agents)
         {
-            Vector3 initialPosition = GetFloorPosition(agentData.initial_position[0], agentData.initial_position[1]);
-            GameObject prefab = agentData.role == "rescuer" ? rescuerPrefab : firefighterPrefab;
-            GameObject agent = Instantiate(prefab, initialPosition, Quaternion.identity);
-            agent.name = $"Agent_{agentData.id}";
-            agents[agentData.id] = agent;
-            agentPositions[agentData.id] = initialPosition; // Guardar la posición inicial
+            Vector3 initialPosition = GetFloorPosition(agent.initial_position[0], agent.initial_position[1]);
+            GameObject prefab = agent.role == "rescuer" ? rescuerPrefab : firefighterPrefab;
+            GameObject agentObj = Instantiate(prefab, initialPosition, Quaternion.identity);
+            agentObj.name = $"Agent_{agent.id}";
+            agents[agent.id] = agentObj;
+            agentPositions[agent.id] = initialPosition;
         }
     }
 
@@ -77,201 +73,63 @@ public class SimulationController : MonoBehaviour
         foreach (var step in simulationData.steps)
         {
             Debug.Log($"Turno: {step.turn}");
-
             foreach (var detail in step.details)
             {
-                Debug.Log($"Detalles del evento: {JsonConvert.SerializeObject(detail)}");
-
-                if (detail.type == "agent_move")
-                {
-                    // Procesar el evento 'agent_move' (debe usar ActionData)
-                    if (detail.data != null)
-                    {
-                        // Deserializar 'data' como ActionData
-                        ActionData actionData = JsonConvert.DeserializeObject<ActionData>(JsonConvert.SerializeObject(detail.data));
-                        Debug.Log($"Procesando agent_move para el agente {actionData.id}");
-                        yield return StartCoroutine(MoveAgentAlongPath(actionData));  // Maneja el movimiento del agente
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Error: 'data' es nulo para el evento agent_move.");
-                    }
-                }
-                else if (detail.type == "model_event")
-                {
-                    // Procesar el evento 'model_event' (debe usar ModelEventData)
-                    if (detail.data != null)
-                    {
-                        // Deserializar 'data' como ModelEventData
-                        ModelEventData modelEventData = JsonConvert.DeserializeObject<ModelEventData>(JsonConvert.SerializeObject(detail.data));
-
-                        if (modelEventData != null && !string.IsNullOrEmpty(modelEventData.type))
-                        {
-                            // Verificar si las listas 'position', 'from' y 'to' son nulas antes de usarlas
-                            string positionStr = modelEventData.position != null && modelEventData.position.Count > 0
-                                ? string.Join(", ", modelEventData.position)
-                                : "N/A";  // Valor alternativo si la lista está vacía o es nula
-
-                            string fromStr = modelEventData.from != null && modelEventData.from.Count > 0
-                                ? string.Join(", ", modelEventData.from)
-                                : "N/A";  // Valor alternativo si la lista está vacía o es nula
-
-                            string toStr = modelEventData.to != null && modelEventData.to.Count > 0
-                                ? string.Join(", ", modelEventData.to)
-                                : "N/A";  // Valor alternativo si la lista está vacía o es nula
-
-                            Debug.Log($"Evento model_event deserializado: Tipo: {modelEventData.type}, Posición: [{positionStr}], From: [{fromStr}], To: [{toStr}], Paso: {modelEventData.step}");
-                            HandleModelEvent(modelEventData);  // Maneja el evento model_event
-                        }
-                        else
-                        {
-                            Debug.LogWarning("El campo 'type' de model_event no está presente o 'modelEventData' es nulo.");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Error: 'data' es nulo para el evento model_event.");
-                    }
-                }
+                HandleDetail(detail);
+                yield return new WaitForSeconds(1f);
             }
-
-            yield return new WaitForSeconds(1f);
         }
     }
 
-
-    IEnumerator MoveAgentAlongPath(ActionData move)
+    void HandleDetail(Detail detail)
     {
-        if (!agents.ContainsKey(move.id))
+        switch (detail.type)
         {
-            Debug.LogError($"Agente con ID {move.id} no encontrado.");
-            yield break;
-        }
-
-        GameObject agent = agents[move.id];
-        Vector3 currentPosition = agentPositions[move.id];
-        int startIndex = FindClosestPathIndex(move.path, currentPosition);
-
-        for (int i = startIndex; i < move.path.Count; i++)
-        {
-            Vector3 targetPosition = GetFloorPosition(move.path[i][0], move.path[i][1]);
-
-            while (Vector3.Distance(currentPosition, targetPosition) > 0.01f)
-            {
-                agent.transform.position = Vector3.MoveTowards(agent.transform.position, targetPosition, Time.deltaTime * moveSpeed);
-                currentPosition = agent.transform.position;
-                yield return null;
-            }
-
-            foreach (var action in move.actions)
-            {
-                if (IsActionAtPosition(move.path[i], action))
-                {
-                    Debug.Log($"Agente {move.id} realizando acción: {action}");
-                    if (action.Contains("Portrait found"))
-                    {
-                        HandlePortraitFound(action, agent);
-                    }
-                    else if (action.Contains("Portrait rescued"))
-                    {
-                        HandlePortraitRescued(agent);
-                    }
-                    else if (action.Contains("Fire extinguished at"))
-                    {
-                        HandleFireExtinguished(action);
-                    }
-                    else if (action.Contains("Smoke extinguished at"))
-                    {
-                        HandleSmokeExtinguished(action);
-                    }
-                    else if (action.Contains("Fire reduced to smoke at"))
-                    {
-                        HandleFireReducedToSmoke(action);
-                    }
-                    yield return new WaitForSeconds(1f);
-                }
-            }
-        }
-
-        agentPositions[move.id] = currentPosition;
-    }
-
-    void HandleModelEvent(ModelEventData eventData)
-    {
-        switch (eventData.type)
-        {
+            case "agent_move":
+                HandleAgentMove(detail);
+                break;
             case "smoke_added":
-                HandleSmokeAdded(eventData.position);
+                HandleSmokeAdded(detail.position);
                 break;
-            case "damage_registered":
-                HandleDamageRegistered(eventData.position);
+            case "found_portrait":
+                HandlePortraitFound(detail);
                 break;
-            case "fire_extended":
-                HandleFireExtended(eventData.from, eventData.to);
-                break;
-            case "wall_destroyed":
-                HandleWallDestroyed(eventData.from, eventData.to);
+            case "fire_extinguished":
+                HandleFireExtinguished(detail.position);
                 break;
             default:
-                Debug.LogWarning($"Evento no manejado: {eventData.type}");
+                Debug.LogWarning($"Evento no manejado: {detail.type}");
                 break;
         }
     }
 
-    void HandleSmokeAdded(List<int> position)
-    {
-        Debug.Log($"Humo añadido en posición ({position[0]}, {position[1]})");
-        InstantiateSmokePrefab(position[0], position[1]);
-    }
 
-    void HandleDamageRegistered(List<int> position)
+    IEnumerator MoveAgent(GameObject agent, Vector3 fromPosition, Vector3 toPosition)
     {
-        Debug.Log($"Daño registrado en posición ({position[0]}, {position[1]})");
-        // Lógica para mostrar daño visual o cambiar estado del suelo
-    }
-
-    void HandleFireExtended(List<int> from, List<int> to)
-    {
-        Debug.Log($"Fuego extendido de ({from[0]}, {from[1]}) a ({to[0]}, {to[1]})");
-        // Lógica para manejar la extensión del fuego
-    }
-
-    void HandleWallDestroyed(List<int> from, List<int> to)
-    {
-        Debug.Log($"Muro destruido de ({from[0]}, {from[1]}) a ({to[0]}, {to[1]})");
-        // Lógica para eliminar un muro en el juego
-    }
-
-    void HandleFireReducedToSmoke(string action)
-    {
-        var match = System.Text.RegularExpressions.Regex.Match(action, @"Fire reduced to smoke at: \((\d+), (\d+)\)");
-        if (match.Success)
-        {
-            int x = int.Parse(match.Groups[1].Value);
-            int y = int.Parse(match.Groups[2].Value);
-
-            GameObject ghost = GameObject.Find($"Ghost ({x},{y})");
-            if (ghost != null)
-            {
-                Debug.Log($"Fuego reducido a humo en ({x}, {y}). Animando ghost y reemplazando con humo.");
-                StartCoroutine(AnimateGhostToSmoke(ghost, x, y));
-            }
-            else
-            {
-                Debug.LogWarning($"No se encontró el ghost en las coordenadas ({x}, {y}).");
-            }
-        }
-    }
-
-    IEnumerator AnimateGhostToSmoke(GameObject ghost, int x, int y)
-    {
-        float duration = 2f; // Duración de cada animación
+        // Tiempo de duración del movimiento
         float timeElapsed = 0f;
+        float moveDuration = 1f; // Puedes ajustar este valor para hacer el movimiento más rápido o lento
 
+        while (timeElapsed < moveDuration)
+        {
+            // Interpolación del movimiento
+            agent.transform.position = Vector3.Lerp(fromPosition, toPosition, timeElapsed / moveDuration);
+            timeElapsed += Time.deltaTime; // Incrementar el tiempo
+            yield return null; // Esperar el siguiente frame
+        }
+
+        // Asegurarse de que el agente termine en la posición final
+        agent.transform.position = toPosition;
+    }
+
+    IEnumerator AnimateReduce(GameObject ghost)
+    {
+        float duration = 2f; // Duración de la animación
+        float timeElapsed = 0f;
         Vector3 initialScale = ghost.transform.localScale;
         Quaternion initialRotation = ghost.transform.rotation;
 
-        // Animación para hacer desaparecer el ghost
+        // Hacer que el ghost gire y se reduzca de tamaño
         while (timeElapsed < duration)
         {
             float t = timeElapsed / duration;
@@ -281,24 +139,30 @@ public class SimulationController : MonoBehaviour
             yield return null;
         }
 
-        Destroy(ghost); // Destruir el ghost después de la animación
+        // Destruir el ghost después de la animación
+        Destroy(ghost);
+    }
 
-        // Crear el nuevo prefab (humo) en su lugar
-        GameObject smoke = InstantiateSmokePrefab(x, y);
+    void HandleAgentMove(Detail detail)
+    {
+        // Formar el nombre del agente usando el 'id' del agente
+        string agentName = $"Agent_{detail.agent}";
 
-        // Animación para que el prefab aparezca creciendo y girando
-        timeElapsed = 0f;
-        Vector3 finalScale = smoke.transform.localScale;
-        smoke.transform.localScale = Vector3.zero; // Comenzar desde escala cero
+        // Buscar el agente en la escena por su nombre
+        GameObject agent = GameObject.Find(agentName);
 
-        while (timeElapsed < duration)
+        if (agent == null)
         {
-            float t = timeElapsed / duration;
-            smoke.transform.localScale = Vector3.Lerp(Vector3.zero, finalScale, t); // Incrementar tamaño
-            smoke.transform.rotation = Quaternion.Euler(0f, 360f * t, 0f); // Hacerlo girar
-            timeElapsed += Time.deltaTime;
-            yield return null;
+            Debug.LogWarning($"Agente con nombre {agentName} no encontrado.");
+            return;
         }
+
+        // Obtener las coordenadas de 'from' y 'to'
+        Vector3 fromPosition = GetFloorPosition(detail.from[0], detail.from[1]);
+        Vector3 toPosition = GetFloorPosition(detail.to[0], detail.to[1]);
+
+        // Mover el agente de 'from' a 'to'
+        StartCoroutine(MoveAgent(agent, fromPosition, toPosition));
     }
 
     IEnumerator AnimateSmokeAppearance(GameObject smoke, float duration)
@@ -333,8 +197,19 @@ public class SimulationController : MonoBehaviour
         smoke.transform.rotation = finalRotation;
     }
 
-    GameObject InstantiateSmokePrefab(int x, int y)
+
+    void HandleSmokeAdded(List<int> position)
     {
+        // Verificar que la posición sea válida
+        if (position == null || position.Count < 2)
+        {
+            Debug.LogWarning("Posición inválida para agregar humo.");
+            return;
+        }
+
+        int x = position[0];
+        int y = position[1];
+
         GameObject cell = GameObject.Find($"Floor ({x},{y})");
 
         if (cell != null)
@@ -357,194 +232,136 @@ public class SimulationController : MonoBehaviour
             StartCoroutine(AnimateSmokeAppearance(smoke, 2f)); // 2 segundos de duración
 
             smoke.name = $"Smoke ({x},{y})";
-
-            return smoke;
         }
         else
         {
             Debug.LogWarning($"No se encontró la celda en: ({x}, {y})");
-            return null;
         }
     }
 
-    void HandleFireExtinguished(string action)
+    void HandleFireExtinguished(List<int> position)
     {
-        var match = System.Text.RegularExpressions.Regex.Match(action, @"Fire extinguished at: \((\d+), (\d+)\)");
-        if (match.Success)
+        if (position == null || position.Count < 2)
         {
-            int x = int.Parse(match.Groups[1].Value);
-            int y = int.Parse(match.Groups[2].Value);
-
-            GameObject ghost = GameObject.Find($"Ghost ({x},{y})");
-            if (ghost != null)
-            {
-                Debug.Log($"Fuego extinguido en ({x}, {y}). Comenzando animación de ghost.");
-                StartCoroutine(AnimateGhost(ghost));
-            }
-            else
-            {
-                Debug.LogWarning($"No se encontró el ghost en las coordenadas ({x}, {y}).");
-            }
-        }
-    }
-
-    void HandleSmokeExtinguished(string action)
-    {
-        var match = System.Text.RegularExpressions.Regex.Match(action, @"Smoke extinguished at: \((\d+), (\d+)\)");
-        if (match.Success)
-        {
-            int x = int.Parse(match.Groups[1].Value);
-            int y = int.Parse(match.Groups[2].Value);
-
-            GameObject smoke = GameObject.Find($"Smoke ({x},{y})");
-            if (smoke != null)
-            {
-                Debug.Log($"Humo extinguido en ({x}, {y}). Comenzando animación de smoke.");
-                StartCoroutine(AnimateGhost(smoke));
-            }
-            else
-            {
-                Debug.LogWarning($"No se encontró el smoke en las coordenadas ({x}, {y}).");
-            }
-        }
-    }
-
-    IEnumerator AnimateGhost(GameObject ghost)
-    {
-        float duration = 2f; // Duración de la animación
-        float timeElapsed = 0f;
-        Vector3 initialScale = ghost.transform.localScale;
-        Quaternion initialRotation = ghost.transform.rotation;
-
-        // Hacer que el ghost gire y se reduzca de tamaño
-        while (timeElapsed < duration)
-        {
-            float t = timeElapsed / duration;
-            ghost.transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, t); // Reducir tamaño
-            ghost.transform.rotation = Quaternion.Euler(0f, 360f * t, 0f); // Hacerlo girar
-            timeElapsed += Time.deltaTime;
-            yield return null;
+            Debug.LogWarning("La posición proporcionada es inválida o incompleta.");
+            return;
         }
 
-        // Destruir el ghost después de la animación
-        Destroy(ghost);
-    }
+        int x = position[0]; // Coordenada X
+        int y = position[1]; // Coordenada Y
 
-    void HandlePortraitFound(string action, GameObject agent)
-    {
-        var match = System.Text.RegularExpressions.Regex.Match(action, @"Portrait found at: \((\d+), (\d+)\), Type: (\w+)");
-        if (match.Success)
+        GameObject ghost = GameObject.Find($"Ghost ({x},{y})");
+        if (ghost != null)
         {
-            int x = int.Parse(match.Groups[1].Value);
-            int y = int.Parse(match.Groups[2].Value);
-            string type = match.Groups[3].Value;
-
-            GameObject mainPortrait = GameObject.Find($"Portrait ({x},{y})");
-            if (mainPortrait != null)
-            {
-                Transform innerPortrait = mainPortrait.transform.Find("Portrait");
-                if (innerPortrait != null)
-                {
-                    Transform mesh4 = innerPortrait.Find("Mesh4");
-                    if (mesh4 != null)
-                    {
-                        Renderer renderer = mesh4.GetComponent<Renderer>();
-                        if (renderer != null)
-                        {
-                            if (type == "Victim")
-                            {
-                                // Cambiar material y convertir en hijo del agente
-                                Material randomMaterial = victimMaterials[UnityEngine.Random.Range(0, victimMaterials.Length)];
-                                renderer.material = randomMaterial;
-                                Debug.Log($"Retrato en ({x}, {y}) identificado como 'Victim'. Ahora es hijo de {agent.name}.");
-                                LevitateAndRotate levitateAndRotate = mainPortrait.GetComponent<LevitateAndRotate>();
-                                if (levitateAndRotate != null)
-                                {
-                                    Destroy(levitateAndRotate); // Eliminar el componente
-                                    Debug.Log("Componente LevitateAndRotate eliminado del retrato.");
-                                }
-                                else
-                                {
-                                    Debug.LogWarning("El retrato no tiene el componente LevitateAndRotate.");
-                                }
-                                mainPortrait.transform.SetParent(agent.transform);
-                            }
-                            else if (type == "False")
-                            {
-                                // Cambiar material y destruir después de 2 segundos
-                                renderer.material = falseMaterial;
-                                Debug.Log($"Retrato en ({x}, {y}) identificado como 'False'. Destruyendo retrato.");
-                                Destroy(mainPortrait, 2f);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    void HandlePortraitRescued(GameObject agent)
-    {
-        Transform portrait = null;
-
-        foreach (Transform child in agent.transform.GetComponentsInChildren<Transform>())
-        {
-            if (child.name.Contains("Portrait"))
-            {
-                portrait = child;
-                break; // Salir del bucle tras encontrarlo
-            }
-        }
-
-        if (portrait != null)
-        {
-            Debug.Log($"Retrato rescatado por {agent.name}. Destruyendo retrato: {portrait.name}");
-            Destroy(portrait.gameObject);
+            Debug.Log($"Fuego extinguido en ({x}, {y}). Comenzando animación de ghost.");
+            StartCoroutine(AnimateReduce(ghost)); // Llama a la animación para el "ghost"
         }
         else
         {
-            Debug.LogWarning($"El agente {agent.name} no tiene un retrato para rescatar.");
+            Debug.LogWarning($"No se encontró el ghost en las coordenadas ({x}, {y}).");
         }
     }
 
-    int FindClosestPathIndex(List<List<int>> path, Vector3 currentPosition)
+    void HandleSmokeExtinguished(List<int> position)
     {
-        float minDistance = float.MaxValue;
-        int closestIndex = 0;
-
-        for (int i = 0; i < path.Count; i++)
+        if (position == null || position.Count < 2)
         {
-            Vector3 pathPosition = GetFloorPosition(path[i][0], path[i][1]);
-            float distance = Vector3.Distance(currentPosition, pathPosition);
-
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                closestIndex = i;
-            }
+            Debug.LogWarning("La posición proporcionada es inválida o incompleta.");
+            return;
         }
 
-        return closestIndex;
+        int x = position[0]; // Coordenada X
+        int y = position[1]; // Coordenada Y
+
+        GameObject ghost = GameObject.Find($"Smoke ({x},{y})");
+        if (ghost != null)
+        {
+            Debug.Log($"Fuego extinguido en ({x}, {y}). Comenzando animación de ghost.");
+            StartCoroutine(AnimateReduce(ghost)); // Llama a la animación para el "ghost"
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró el ghost en las coordenadas ({x}, {y}).");
+        }
+    }
+
+    void HandlePortraitFound(Detail detail)
+    {
+        int agentId = detail.agent; // ID del agente
+        int x = detail.at[0];       // Coordenada X
+        int y = detail.at[1];       // Coordenada Y
+        string type = detail.portrait_type; // Tipo de retrato
+
+        // Verificar si el agente existe
+        if (!agents.TryGetValue(agentId, out GameObject agent))
+        {
+            Debug.LogWarning($"Agente con ID {agentId} no encontrado.");
+            return;
+        }
+
+        // Buscar el retrato en la escena
+        GameObject mainPortrait = GameObject.Find($"Portrait ({x},{y})");
+        if (mainPortrait == null)
+        {
+            Debug.LogWarning($"No se encontró el retrato en la posición ({x},{y}).");
+            return;
+        }
+
+        Transform innerPortrait = mainPortrait.transform.Find("Portrait");
+        if (innerPortrait == null)
+        {
+            Debug.LogWarning($"El retrato en ({x},{y}) no contiene un componente 'Portrait'.");
+            return;
+        }
+
+        Transform mesh4 = innerPortrait.Find("Mesh4");
+        if (mesh4 == null)
+        {
+            Debug.LogWarning($"El retrato en ({x},{y}) no contiene un componente 'Mesh4'.");
+            return;
+        }
+
+        Renderer renderer = mesh4.GetComponent<Renderer>();
+        if (renderer == null)
+        {
+            Debug.LogWarning($"El componente 'Renderer' no se encontró en 'Mesh4' del retrato en ({x},{y}).");
+            return;
+        }
+
+        if (type == "Victim")
+        {
+            // Cambiar material y asignar al agente
+            Material randomMaterial = victimMaterials[Random.Range(0, victimMaterials.Length)];
+            renderer.material = randomMaterial;
+
+            Debug.Log($"Retrato en ({x},{y}) identificado como 'Victim'. Ahora es hijo de {agent.name}.");
+
+            LevitateAndRotate levitateAndRotate = mainPortrait.GetComponent<LevitateAndRotate>();
+            if (levitateAndRotate != null)
+            {
+                Destroy(levitateAndRotate); // Eliminar el componente
+                Debug.Log("Componente LevitateAndRotate eliminado del retrato.");
+            }
+            else
+            {
+                Debug.LogWarning("El retrato no tiene el componente LevitateAndRotate.");
+            }
+
+            mainPortrait.transform.SetParent(agent.transform); // Asignar como hijo del agente
+        }
+        else if (type == "False")
+        {
+            // Cambiar material y destruir después de 2 segundos
+            renderer.material = falseMaterial;
+            Debug.Log($"Retrato en ({x},{y}) identificado como 'False'. Destruyendo retrato.");
+            Destroy(mainPortrait, 2f);
+        }
     }
 
     Vector3 GetFloorPosition(int x, int y)
     {
         GameObject floor = GameObject.Find($"Floor ({x},{y})");
-        if (floor != null)
-        {
-            return floor.transform.position + new Vector3(0, 1f, 0);
-        }
-        else
-        {
-            Debug.LogWarning($"Floor ({x},{y}) no encontrado.");
-            return Vector3.zero;
-        }
-    }
-
-    bool IsActionAtPosition(List<int> position, string action)
-    {
-        string posString = $"({position[0]}, {position[1]})";
-        return action.Contains(posString);
+        return floor != null ? floor.transform.position + Vector3.up : Vector3.zero;
     }
 }
 
@@ -573,26 +390,12 @@ public class Step
 [System.Serializable]
 public class Detail
 {
-    public string type;                // Tipo de evento: "agent_move" o "model_event"
-    public object data;                // Usamos 'object' para que pueda ser ActionData o ModelEventData
-    public ModelEventData model_event_data;  // Esto es para acceder directamente a model_event_data si está presente
+    public string type;
+    public int id;
+    public int agent;
+    public List<int> from;
+    public List<int> to;
+    public List<int> position;
+    public string portrait_type;
+    public List<int> at;
 }
-
-[System.Serializable]
-public class ActionData
-{
-    public List<string> actions;       // Acciones realizadas por el agente
-    public int id;                     // ID del agente
-    public List<List<int>> path;       // Ruta del agente, representada como listas de coordenadas [x, y]
-}
-
-[System.Serializable]
-public class ModelEventData
-{
-    public List<int> position;         // Posición del evento en formato [x, y]
-    public List<int> from;             // Para eventos de tipo "fire_extended"
-    public List<int> to;               // Para eventos de tipo "fire_extended"
-    public string type;                // Tipo de evento: "smoke_added", "fire_extinguished", etc.
-    public int step;                   // Paso del evento
-}
-
