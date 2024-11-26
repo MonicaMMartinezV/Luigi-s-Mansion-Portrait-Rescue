@@ -10,6 +10,7 @@ public class SimulationController : MonoBehaviour
     public GameObject rescuerPrefab;
     public GameObject firefighterPrefab;
     public GameObject smokePrefab;
+    public GameObject ghostPrefab;
     public GameObject portraitPrefab;
     public Material falseMaterial;
     public Material[] victimMaterials;
@@ -121,8 +122,21 @@ public class SimulationController : MonoBehaviour
                 HandlePortraitRescued(detail);
                 break;
             case "wall_destroyed":
-                HandleWallDestroyed(detail);
+                Debug.Log($"Detalles recibidos para WallDestroyed - Position: {string.Join(", ", detail.position ?? new List<int>())}, Target: {string.Join(", ", detail.target ?? new List<int>())}");
+                HandleWallDestroyed(detail.position,detail.target);
                 break;
+            case "fire_to_smoke":
+                HandleFireExtinguished(detail.position);
+                HandleSmokeAdded(detail.position);
+                break;
+            case "smoke_extinguished":
+                HandleSmokeExtinguished(detail.position);
+                break;
+            case "smoke_to_fire":
+                HandleSmokeExtinguished(detail.position);
+                HandleFireAdded(detail.position);
+                break;
+            case 
             default:
                 Debug.LogWarning($"Evento no manejado: {detail.type}");
                 break;
@@ -169,80 +183,98 @@ public class SimulationController : MonoBehaviour
         Destroy(ghost);
     }
 
-    void HandleWallDestroyed(Detail detail)
+    void HandleWallDestroyed(List<int> position, List<int> target)
     {
+        if (position == null || position.Count < 2)
+        {
+            Debug.LogError("Position inválida o nula en HandleWallDestroyed.");
+            return;
+        }
 
-        Debug.Log($"Detail: {detail}");
-        // Obtener las posiciones de "position" y "target"
-        List<int> position = detail.position;
-        List<int> target = detail.target;
+        if (target == null || target.Count < 2)
+        {
+            Debug.LogError("Target inválido o nulo en HandleWallDestroyed.");
+            return;
+        }
 
-        // Obtener las coordenadas X e Y de ambas posiciones
         int xPos = position[0];
         int yPos = position[1];
         int xTarget = target[0];
         int yTarget = target[1];
 
-        // Calcular la dirección en la que se debe destruir el muro
-        string wallType = "";
+        string wallTypeFromPosition = "";
+        string wallTypeFromTarget = "";
 
-        // Verificar en qué dirección se encuentra el "target"
-        if (xPos == xTarget)  // Mismo X -> Vertical (arriba o abajo)
+        // Determinar el tipo de pared en `position`
+        if (xPos == xTarget)  // Mismo X (Vertical)
         {
-            if (yTarget > yPos)
+            if (yTarget < yPos)
             {
-                wallType = "UpperWall"; // El target está arriba, destruir "UpperWall"
+                wallTypeFromPosition = "UpperWall";
+                wallTypeFromTarget = "BottomWall";
             }
-            else if (yTarget < yPos)
+            else if (yTarget > yPos)
             {
-                wallType = "BottomWall"; // El target está abajo, destruir "BottomWall"
+                wallTypeFromPosition = "BottomWall";
+                wallTypeFromTarget = "UpperWall";
             }
         }
-        else if (yPos == yTarget)  // Mismo Y -> Horizontal (izquierda o derecha)
+        else if (yPos == yTarget)  // Mismo Y (Horizontal)
         {
             if (xTarget > xPos)
             {
-                wallType = "RightWall"; // El target está a la derecha, destruir "RightWall"
+                wallTypeFromPosition = "RightWall";
+                wallTypeFromTarget = "LeftWall";
             }
             else if (xTarget < xPos)
             {
-                wallType = "LeftWall"; // El target está a la izquierda, destruir "LeftWall"
+                wallTypeFromPosition = "LeftWall";
+                wallTypeFromTarget = "RightWall";
             }
         }
 
-        // Depuración para mostrar las posiciones y el tipo de muro
-        Debug.Log($"Posición: ({xPos},{yPos}), Target: ({xTarget},{yTarget}), WallType: {wallType}");
+        Debug.Log($"Posición: ({xPos},{yPos}), Target: ({xTarget},{yTarget}), WallTypeFromPosition: {wallTypeFromPosition}, WallTypeFromTarget: {wallTypeFromTarget}");
 
-        // Buscar el objeto Floor(xPos, yPos)
-        GameObject floor = GameObject.Find($"Floor ({xPos},{yPos})");
-
-        if (floor != null)
+        // Destruir la pared en `position`
+        GameObject floorPosition = GameObject.Find($"Floor ({xPos},{yPos})");
+        if (floorPosition != null)
         {
-            Debug.Log($"Encontrado {floor.name} en la escena.");
-
-            // Buscar el objeto Wall dentro del Floor(xPos, yPos) con el nombre de wallType
-            Transform wallTransform = floor.transform.Find(wallType); // Buscar el objeto con el nombre wallType (UpperWall, BottomWall, etc.)
-
+            Transform wallTransform = floorPosition.transform.Find(wallTypeFromPosition);
             if (wallTransform != null)
             {
-                // Si encontramos el objeto wall, destruirlo
-                GameObject wall = wallTransform.gameObject;
-                Debug.Log($"Destruyendo: {wall.name}");
-                Destroy(wall); // Destruir el muro
+                Debug.Log($"Destruyendo {wallTypeFromPosition} en Floor ({xPos},{yPos})");
+                Destroy(wallTransform.gameObject);
             }
             else
             {
-                // Si no se encuentra el wall, imprimir un mensaje de advertencia
-                Debug.LogWarning($"No se encontró el {wallType} dentro de {floor.name}.");
+                Debug.LogWarning($"No se encontró el {wallTypeFromPosition} dentro de Floor ({xPos},{yPos}).");
             }
         }
         else
         {
-            // Si no se encuentra el Floor(xPos, yPos), imprimir un mensaje de advertencia
-            Debug.LogWarning($"No se encontró el objeto Floor ({xPos},{yPos}) en la escena.");
+            Debug.LogWarning($"No se encontró Floor en la posición ({xPos},{yPos}).");
+        }
+
+        // Destruir la pared en `target`
+        GameObject floorTarget = GameObject.Find($"Floor ({xTarget},{yTarget})");
+        if (floorTarget != null)
+        {
+            Transform wallTransform = floorTarget.transform.Find(wallTypeFromTarget);
+            if (wallTransform != null)
+            {
+                Debug.Log($"Destruyendo {wallTypeFromTarget} en Floor ({xTarget},{yTarget})");
+                Destroy(wallTransform.gameObject);
+            }
+            else
+            {
+                Debug.LogWarning($"No se encontró el {wallTypeFromTarget} dentro de Floor ({xTarget},{yTarget}).");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
         }
     }
-
 
     void HandleAgentMove(Detail detail)
     {
@@ -298,6 +330,38 @@ public class SimulationController : MonoBehaviour
         smoke.transform.rotation = finalRotation;
     }
 
+    IEnumerator AnimateGhostAppearance(GameObject ghost, float duration)
+    {
+        float elapsedTime = 0f;
+        
+        // Tamaño y rotación inicial
+        Vector3 initialScale = Vector3.zero; // Comienza desde escala cero
+        Vector3 finalScale = Vector3.one* 4.887948f;    // Tamaño final normal
+        Quaternion initialRotation = Quaternion.Euler(0, 0, 0); // Rotación inicial
+        Quaternion finalRotation = ghost.transform.rotation;    // Rotación final deseada
+        
+        // Aplicar el tamaño inicial
+        ghost.transform.localScale = initialScale;
+        ghost.transform.rotation = initialRotation;
+
+        // Animar la escala y rotación
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsedTime / duration);
+
+            // Interpolación para la escala y la rotación
+            ghost.transform.localScale = Vector3.Lerp(initialScale, finalScale, t);
+            ghost.transform.rotation = Quaternion.Lerp(initialRotation, finalRotation, t);
+
+            yield return null; // Esperar el siguiente frame
+        }
+
+        // Asegurar el tamaño y rotación finales
+        ghost.transform.localScale = finalScale;
+        ghost.transform.rotation = finalRotation;
+    }
+
 
     void HandleSmokeAdded(List<int> position)
     {
@@ -333,6 +397,53 @@ public class SimulationController : MonoBehaviour
             StartCoroutine(AnimateSmokeAppearance(smoke, 2f)); // 2 segundos de duración
 
             smoke.name = $"Smoke ({x},{y})";
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró la celda en: ({x}, {y})");
+        }
+    }
+
+    void HandleFireAdded(List<int> position)
+    {
+        // Verificar que la posición sea válida
+        if (position == null || position.Count < 2)
+        {
+            Debug.LogWarning("Posición inválida para agregar humo.");
+            return;
+        }
+
+        int x = position[0];
+        int y = position[1];
+
+        GameObject cell = GameObject.Find($"Floor ({x},{y})");
+
+        if (cell != null)
+        {
+            Debug.Log($"Instanciando humo en la celda: ({x}, {y})");
+
+            // Obtener la posición de la celda
+            Vector3 cellPosition = cell.transform.position;
+
+            // Crear la nueva posición ajustada
+            float offsetX = 2.019836f; // Desplazamiento en X
+            float offsetY = 22.2000008f; // Desplazamiento en Y
+            float offsetZ = -3.7f; // Desplazamiento en Z
+            Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
+            // Instanciar el prefab del fantasma
+            GameObject ghost = Instantiate(ghostPrefab, adjustedPosition, Quaternion.identity);
+
+            // Ajustar el tag al instanciar el objeto
+            ghost.tag = "Ghost";
+
+            // Ajustar la rotación del fantasma a -180 grados en Y si es necesario
+            ghost.transform.rotation = Quaternion.Euler(ghost.transform.rotation.eulerAngles.x, -180, ghost.transform.rotation.eulerAngles.z);
+
+            // Iniciar la corutina para animar el humo
+            StartCoroutine(AnimateGhostAppearance(ghost, 2f)); // 2 segundos de duración
+
+            ghost.name = $"Ghost ({x},{y})";
         }
         else
         {
@@ -445,11 +556,11 @@ public class SimulationController : MonoBehaviour
         int x = position[0]; // Coordenada X
         int y = position[1]; // Coordenada Y
 
-        GameObject ghost = GameObject.Find($"Smoke ({x},{y})");
-        if (ghost != null)
+        GameObject smoke = GameObject.Find($"Smoke ({x},{y})");
+        if (smoke != null)
         {
-            Debug.Log($"Fuego extinguido en ({x}, {y}). Comenzando animación de ghost.");
-            StartCoroutine(AnimateReduce(ghost)); // Llama a la animación para el "ghost"
+            Debug.Log($"Smoke extinguido en ({x}, {y}). Comenzando animación de ghost.");
+            StartCoroutine(AnimateReduce(smoke)); // Llama a la animación para el "ghost"
         }
         else
         {
@@ -603,10 +714,10 @@ public class Detail
     public string type;
     public int id;
     public int agent;
-    public List<int> from;
-    public List<int> to;
-    public List<int> position;
-    public List<int> target;
+    public List<int> from = new List<int>();
+    public List<int> to = new List<int>();
+    public List<int> position = new List<int>();
+    public List<int> target = new List<int>();
     public string portrait_type;
-    public List<int> at;
+    public List<int> at = new List<int>();
 }

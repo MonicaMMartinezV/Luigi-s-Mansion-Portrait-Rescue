@@ -1,5 +1,7 @@
 from mesa import Agent
 from queue import Queue
+from heapq import heappush, heappop
+
 
 DEVELOPMENT = False
 
@@ -17,87 +19,68 @@ class LuigiAgent(Agent):
         self.carrying_portrait = False  # Indica si el agente lleva un retrato (víctima)
         self.in_central_grid   = False  # Indica si el agente se encuentra dentro del grid central
 
-    def manhattan(self, target):
-        """Calcula la distancia Manhattan entre el agente y el objetivo."""
-        if not isinstance(target, tuple) or len(target) != 2:
-            raise ValueError(f"Target inválido para cálculo de Manhattan: {target}")
-        x, y = self.pos
-        tx, ty = target
-        return abs(x - tx) + abs(y - ty)
+    def heuristic(self, cell, goal):
+        """Calcula la distancia Manhattan entre una celda y un objetivo."""
+        return abs(cell[0] - goal[0]) + abs(cell[1] - goal[1])
+    
+    def a_star(self, start, goals):
+        """Algoritmo A* para encontrar el camino más corto a un objetivo."""
+        open_list = []
+        heappush(open_list, (0, start))
+        came_from = {}
+        cost_so_far = {start: 0}
 
+        while open_list:
+            _, current = heappop(open_list)
+
+            if current in goals:
+                path = []
+                while current in came_from:
+                    path.append(current)
+                    current = came_from[current]
+                return path[::-1]
+
+            for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                neighbor = (current[0] + dx, current[1] + dy)
+
+                # Check if the move is blocked by walls or doors
+                if self.model.check_collision_walls_doors(current, neighbor):
+                    continue
+
+                if neighbor not in self.model.grid_details or neighbor in cost_so_far:
+                    continue
+
+                if not self.model.grid.is_cell_empty(neighbor):
+                    continue
+
+                new_cost = cost_so_far[current] + self.model.grid_details.get(neighbor, 1)
+                if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
+                    cost_so_far[neighbor] = new_cost
+                    priority = new_cost + min(self.heuristic(neighbor, goal) for goal in goals)
+                    heappush(open_list, (priority, neighbor))
+                    came_from[neighbor] = current
+
+        return []  # No se encontró un camino
+    
     def move_towards(self, target):
-        """Mueve al agente hacia una celda objetivo usando la distancia Manhattan."""
+        """Mueve al agente hacia un objetivo usando A*."""
         if self.pos == target:
             return True  # El agente ya está en la celda objetivo
-        
-        def get_adjacent_positions(pos):
-            """Devuelve posiciones adyacentes válidas alrededor de `pos`."""
-            x, y = pos
-            possible_moves = [
-                (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)
-            ]
 
-            # Filtrar solo las posiciones dentro de los límites del grid
-            return [
-                (nx, ny) for nx, ny in possible_moves
-                if 0 <= nx < self.model.grid.width and 0 <= ny < self.model.grid.height and self.model.grid.is_cell_empty((nx, ny))
-            ]
-
-        # Implementar búsqueda en amplitud (BFS) para encontrar un camino
-        visited = set()
-        queue = Queue()
-        queue.put((self.pos, []))  # (posición actual, camino hasta ahora)
-
-        while not queue.empty():
-            current_pos, path = queue.get()
-            
-            if current_pos in visited:
-                continue
-            
-            visited.add(current_pos)
-
-            for next_pos in get_adjacent_positions(current_pos):
-                if next_pos == target:
-                    path.append(next_pos)
-                    break  # Encontramos el objetivo
-
-                if next_pos not in visited:
-                    queue.put((next_pos, path + [next_pos]))
-            
-            if path and path[-1] == target:
-                break  # Finalizar la búsqueda cuando se encuentre un camino al objetivo
-
-        # Verificar si el agente tiene suficiente energía para moverse
-        if self.carrying_portrait and self.action_points < 2:
-            print(f"Agente {self.unique_id} no tiene suficientes puntos de acción para moverse mientras carga un retrato.")
-            return False  # No hay suficientes puntos para moverse con el retrato
-
-        elif not self.carrying_portrait and self.action_points < 1:
-            print(f"Agente {self.unique_id} no tiene suficientes puntos de acción para moverse.")
-            return False  # No hay suficientes puntos para moverse sin el retrato
-
-        # Si se encontró un camino, moverse hacia el primer paso del camino
-        if path:
-            next_step = path[0]
-            print(f"Agente {self.unique_id} se mueve de {self.pos} a {next_step}.")
-            self.model.log_event({
-                "type": "agent_move",
-                "agent": self.unique_id,
-                "from": self.pos,
-                "to": next_step,
-            })
-            self.model.grid.move_agent(self, next_step)
-            self.pos = next_step
-            self.history.append(self.pos)
-
-            if self.carrying_portrait:
-                self.action_points -= 2
-            else: 
-                self.action_points -= 1
-            return True
-        else:
+        path = self.a_star(self.pos, [target])
+        if not path:
             print(f"Agente {self.unique_id} no puede alcanzar el objetivo desde {self.pos}.")
-            return False  # No se encontró un camino válido
+            return False  # No se encontró un camino
+
+        next_step = path[0]
+        print(f"Agente {self.unique_id} se mueve de {self.pos} a {next_step}.")
+        self.model.grid.move_agent(self, next_step)
+        self.pos = next_step
+        self.history.append(self.pos)
+
+        # Reducir puntos de acción según si lleva un retrato
+        self.action_points -= 2 if self.carrying_portrait else 1
+        return True
 
     def examine_portrait(self, position):
         """Recoge el retrato de la víctima o falsa alarma cuando el agente llega a su posición."""
@@ -105,25 +88,14 @@ class LuigiAgent(Agent):
             portrait = self.model.portraits[position]
             if portrait == "victim":
                 self.carrying_portrait = True  # El agente ahora lleva un retrato (víctima)
+                self.model.portraits[position] = None  # Eliminar la víctima rescatada
                 print(f"Agente {self.unique_id} ha encontrado una víctima en {position}.")
                 self.action_history.append(f"Portrait found at: {position}, Type: Victim")
-                self.model.log_event({
-                    "type": "found_portrait",
-                    "at": position,
-                    "agent": self.unique_id,
-                    "portrait_type": "Victim",
-                })
                 return {"position": position, "type": "victim"}  # Retorna detalles
             elif portrait == "false_alarm":
                 self.model.portraits[position] = None  # Eliminar la falsa alarma
                 print(f"Agente {self.unique_id} encontró una falsa alarma en {position}.")
                 self.action_history.append(f"Portrait found at: {position}, Type: False")
-                self.model.log_event({
-                    "type": "found_portrait",
-                    "at": position,
-                    "agent": self.unique_id,
-                    "portrait_type": "False",
-                })
                 return {"position": position, "type": "false_alarm"}  # Retorna detalles
         return None  # Si no hay retrato en esa posición
 
@@ -134,34 +106,18 @@ class LuigiAgent(Agent):
             self.model.grid_details[position] = 0  # Actualizar la celda a estado vacío
             self.action_points -= 2  # Reducir puntos de acción
             self.action_history.append(f"Fire extinguished at: {position}") 
-            self.model.log_event({
-                    "type": "fire_extinguished",
-                    "agent": self.unique_id,
-                    "position": position,
-            })
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar fuego en {position}.")
 
-    def extinguish_smoke(self, position,reducing):
+    def extinguish_smoke(self, position):
         """Extinguir humo en la posición dada."""
         if self.action_points >= 1:
             print(f"[DEBUG] Agente {self.unique_id} eliminando humo en {position}.")
             self.model.grid_details[position] -= 1   # Actualizar la celda a estado vacío
             self.action_points -= 1  # Reducir puntos de acción
-            if not reducing:
-                self.action_history.append(f"Smoke extinguished at: {position}") 
-                self.model.log_event({
-                    "type": "smoke_extinguished",
-                    "agent": self.unique_id,
-                    "position": position,
-            })
+            self.action_history.append(f"Smoke extinguished at: {position}") 
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar humo en {position}.")
-            self.model.log_event({
-                "type": "fire_to_smoke",
-                "agent": self.unique_id,
-                "position": position
-            })
 
     def move_inside_cntral_grid(self):
         if (self.pos[0] == 0):
@@ -183,12 +139,6 @@ class LuigiAgent(Agent):
         self.history.append(self.pos)
 
         print(f"[DEBUG] Agente {self.unique_id} se mueve dentro del cuadrante central en {self.pos}.")
-        self.model.log_event({
-                "type": "agent_move",
-                "from": self.pos,
-                "agent": self.unique_id,
-                "to": next_step,
-        })
 
     def rescuer_strategy(self):
         """Estrategia para agentes cuyo rol es rescatar víctimas."""
@@ -201,7 +151,7 @@ class LuigiAgent(Agent):
                 # Si lleva un retrato, moverse hacia la salida más cercana
                 valid_exits = [pos for pos in self.model.entrances if isinstance(pos, tuple) and len(pos) == 2]
                 if valid_exits:
-                    nearest_exit = min(valid_exits, key=self.manhattan)
+                    nearest_exit = min(valid_exits, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} lleva retrato. Moviéndose hacia la salida más cercana: {nearest_exit}")
                     if not self.move_towards(nearest_exit):  # Detenerse si no puede moverse
                         print(f"[DEBUG] Agente {self.unique_id} no puede moverse hacia {nearest_exit}.")
@@ -210,16 +160,9 @@ class LuigiAgent(Agent):
                      # Si el agente llega a la salida, se rescató la víctima
                     if self.pos == nearest_exit:
                         print(f"[DEBUG] Agente {self.unique_id} ha llegado a la salida con el retrato.")
-                        self.action_history.append(f"Portrait rescued at: {nearest_exit}") 
                         self.carrying_portrait = False  # Resetear estatus de
                         self.model.rescued += 1  # Contar el rescate en el modelo
                         print(f"[DEBUG] Agente {self.unique_id} ha rescatado a una víctima. Total rescatados: {self.model.rescued}")
-                        self.model.log_event({
-                            "type": "rescued_portrait",
-                            "agent": self.unique_id,
-                            "position": nearest_exit,
-                            "rescued": self.model.rescued
-                        })
 
                 else:
                     print(f"[ERROR] No hay salidas válidas para el agente {self.unique_id}. Terminando turno.")
@@ -235,7 +178,7 @@ class LuigiAgent(Agent):
                     ]
                     if portraits:
                         # Encontrar el retrato más cercano usando Manhattan
-                        nearest_portrait = min(portraits, key=self.manhattan)
+                        nearest_portrait = min(portraits, key=lambda pos: self.heuristic(self.pos, pos))
                         print(f"[DEBUG] Agente {self.unique_id} buscando retrato. Moviéndose hacia el retrato más cercano: {nearest_portrait}")
                         if not self.move_towards(nearest_portrait):  # Si no puede moverse, detenerse
                             break
@@ -260,7 +203,7 @@ class LuigiAgent(Agent):
                 # Buscar la celda más cercana con humo (valor 1) o fuego (valor 2)
                 fire_cells = [pos for pos, value in self.model.grid_details.items() if value == 1 or value == 2]
                 if fire_cells:
-                    nearest_fire = min(fire_cells, key=self.manhattan)
+                    nearest_fire = min(fire_cells, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} buscando fuego. Moviéndose hacia el fuego más cercano: {nearest_fire}")
                     if not self.move_towards(nearest_fire):  # Si no puede moverse hacia el fuego, detenerse
                         break
@@ -272,13 +215,9 @@ class LuigiAgent(Agent):
                             if self.action_points >= 2:
                                 self.extinguish_fire(nearest_fire)
                             elif self.action_points == 1:
-                                reducing = True
-                                self.extinguish_smoke(nearest_fire,reducing)
-                                print(f"[DEBUG] Agente {self.unique_id} bajando fuego a humo . El fuego es : {nearest_fire}")
-                                self.action_history.append(f"Fire reduced to smoke at: {nearest_fire}")
+                                self.extinguish_smoke(nearest_fire)
                         elif fire_value == 1: # Si tiene puntos y es humo
-                            reducing = False
-                            self.extinguish_smoke(nearest_fire,reducing)     
+                            self.extinguish_smoke(nearest_fire)     
                         continue # Después de lidiar con el humo/fuego, sigue buscando otro
                 else:
                     # Si no hay fuego, el bombero se detiene
@@ -288,33 +227,14 @@ class LuigiAgent(Agent):
     def step(self):
         """Función que ejecuta el paso de un agente."""
         print(f"\n[DEBUG] Agente {self.unique_id} ({self.role}) inicia su turno en posición {self.pos}. Energía inicial: {self.action_points}.")
-        self.model.log_event({
-            "type": "agent_turn_start",
-            "agent": self.unique_id,
-            "role": self.role,
-            "position": self.pos,
-            "action_points": self.action_points
-        })
-            
+        
         if self.role == "rescuer":
             self.rescuer_strategy()  # Ejecutar estrategia de rescate
         elif self.role == "firefighter":
             self.firefighter_strategy()  # Ejecutar estrategia de apagar incendios
 
-        self.model.log_event({
-            "type": "agent_turn_end",
-            "agent": self.unique_id,
-            "role": self.role,
-            "position": self.pos,
-            "remaining_action_points": self.action_points
-        })
-
-        # Esparcir fuego
-        self.model.add_portraits()
-        self.model.spread_boos()
-
         print(f"[DEBUG] Agente {self.unique_id} ({self.role}) termina su turno en posición {self.pos}. Energía restante: {self.action_points}.")
-    
+        
         # Restaurar la energía para el próximo turno
         self.action_points += 4
 

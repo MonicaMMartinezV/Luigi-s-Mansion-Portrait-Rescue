@@ -236,7 +236,7 @@ class MansionModel(Model):
                 self.grid_details[target_pos] = 2
                 print(f"[INFO] Nuevo fuego agregado en {target_pos}")
                 self.log_event({
-                    "type": "fire_to_smoke",
+                    "type": "smoke_to_fire",
                     "position": target_pos,
                     "step": self.step_count
                 })
@@ -261,7 +261,7 @@ class MansionModel(Model):
                                     })
                                 if self.grid_details.get(neighbor) == 1:
                                     self.log_event({
-                                    "type": "smoke_added",
+                                    "type": "smoke_to_fire",
                                     "position": target_pos,
                                     "step": self.step_count
                                 })
@@ -362,8 +362,8 @@ class MansionModel(Model):
             print(f"[INFO] Pared destruida de {origin} a {target}")
             self.log_event({
                 "type": "wall_destroyed",
-                "from": origin,
-                "to": target,
+                "position": origin,
+                "target": target,
                 "step": self.step_count
             })
         elif origin_counter[path_org]== "0":
@@ -520,5 +520,4 @@ class MansionModel(Model):
         
         # Realizar procesos adicionales del modelo
         self.process_flashover()
-        self.add_portraits()
         self.update_simulation_status()
