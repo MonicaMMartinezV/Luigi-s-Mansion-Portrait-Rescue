@@ -467,16 +467,6 @@ class MansionModel(Model):
         else:
             doors_blocked = True
         return wall_blocked and doors_blocked
-    
-    def check_walls(self, start, next):
-        """Verifica si hay una colisión entre dos posiciones."""
-        direction = self.direction(start, next)
-
-        # Revisar si hay una pared en el camino
-        wall_blocked = direction is not None and self.grid_walls[start][0][direction] == '1'
-
-        print(f"[DEBUG] Collision check from {start} to {next}: wall_blocked={wall_blocked}.")
-        return wall_blocked
 
     def process_flashover(self):
         """Procesa la expansión de incendios y fantasmas."""

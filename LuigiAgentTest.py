@@ -45,7 +45,7 @@ class LuigiAgent(Agent):
                     x, y = current[0] + dx, current[1] + dy
                     neighbor = (x, y)
 
-                    if self.model.check_collision_walls_doors(current, neighbor):
+                    if self.check_collision_walls(current, neighbor):
                         continue
 
                     if neighbor not in grid:
@@ -53,6 +53,10 @@ class LuigiAgent(Agent):
                     if neighbor in closed_list:
                         continue
                     cost = grid[neighbor]
+
+                    if self.check_collision_doors(current, neighbor):
+                        cost += 1
+
                     tentative_cost = cost_so_far[current] + cost
 
                     if neighbor not in cost_so_far or tentative_cost < cost_so_far[neighbor]:
@@ -73,12 +77,42 @@ class LuigiAgent(Agent):
         else:
             return [ag]
     
+    def check_collision_walls(self, start, next):
+        """Verifica si hay una colisión entre dos posiciones."""
+        direction = self.model.direction(start, next)
+        combined_possn = start + next
+        combined_posns = next + start
+
+        wall_blocked = direction != None and self.model.grid_walls[start][0][direction] == '1'
+        
+        if (combined_possn in self.model.exit_positions or \
+            combined_posns in self.model.exit_positions):
+            wall_blocked = False
+        return wall_blocked
+    
+    def check_collision_doors(self, start, next):
+        """Verifica si hay una colisión entre dos posiciones."""
+        combined_possn = start + next
+        combined_posns = next + start
+
+        if combined_possn in self.model.exit_positions or \
+           combined_posns in self.model.exit_positions:
+            if self.model.exit_positions.get(combined_possn) and \
+               self.model.exit_positions.get(combined_posns):
+                doors_blocked = False
+            else:
+                doors_blocked = True
+        else:
+            doors_blocked = False
+        return doors_blocked
+
     def move_towards(self, target):
         """Mueve al agente hacia un objetivo usando A*."""
         if self.pos == target:
             return True  # El agente ya está en la celda objetivo
 
         path = self.a_star(self.model.grid_details, self.pos, [target])
+        print(f"Agente {self.unique_id} tiene el camino: {path}")
         if not path:
             print(f"Agente {self.unique_id} no puede alcanzar el objetivo desde {self.pos}.")
             return False  # No se encontró un camino
@@ -221,13 +255,10 @@ class LuigiAgent(Agent):
                     # Verificar si llegó al humo/fuego y procesarlo
                     if self.pos == nearest_fire:
                         fire_value = self.model.grid_details[nearest_fire]
-                        if fire_value == 2: # Si es fuego
+                        if fire_value == 2 and self.action_points >= 2: # Si es fuego
                             # Dependiendo de puntos, extinguir o reducir a humo
-                            if self.action_points >= 2:
-                                self.extinguish_fire(nearest_fire)
-                            elif self.action_points == 1:
-                                self.extinguish_smoke(nearest_fire)
-                        elif fire_value == 1: # Si tiene puntos y es humo
+                            self.extinguish_fire(nearest_fire)
+                        elif fire_value == 1 and self.action_points >= 1: # Si tiene puntos y es humo
                             self.extinguish_smoke(nearest_fire)     
                         continue # Después de lidiar con el humo/fuego, sigue buscando otro
                 else:
