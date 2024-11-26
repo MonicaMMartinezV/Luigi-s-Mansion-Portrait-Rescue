@@ -1,7 +1,8 @@
+import heapq
 from mesa import Agent
 from queue import Queue
-from heapq import heappush, heappop
 
+import random
 
 DEVELOPMENT = False
 
@@ -21,53 +22,63 @@ class LuigiAgent(Agent):
 
     def heuristic(self, cell, goal):
         """Calcula la distancia Manhattan entre una celda y un objetivo."""
-        return abs(cell[0] - goal[0]) + abs(cell[1] - goal[1])
+        return abs(cell[0] - goal[0]) + abs(cell[1] - goal[1]) + random.uniform(0, 0.5)
     
-    def a_star(self, start, goals):
-        """Algoritmo A* para encontrar el camino más corto a un objetivo."""
-        open_list = []
-        heappush(open_list, (0, start))
+    def a_star(self, grid, ag, goals):
+        open_list = [(0, ag)]  # priority queue
+        closed_list = set()
         came_from = {}
-        cost_so_far = {start: 0}
+        cost_so_far = {ag: 0}
 
-        while open_list:
-            _, current = heappop(open_list)
+        if len(goals) >= 1:
+            while open_list:
+                _, current = heapq.heappop(open_list)
+                if current in goals:
+                    path = []
+                    while current in came_from:
+                        path.append(current)
+                        current = came_from[current]
+                    return path[::-1]
 
-            if current in goals:
-                path = []
-                while current in came_from:
-                    path.append(current)
-                    current = came_from[current]
-                return path[::-1]
+                closed_list.add(current)
+                for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:  # 4-neighbors
+                    x, y = current[0] + dx, current[1] + dy
+                    neighbor = (x, y)
 
-            for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
-                neighbor = (current[0] + dx, current[1] + dy)
+                    if self.model.check_collision_walls_doors(current, neighbor):
+                        continue
 
-                # Check if the move is blocked by walls or doors
-                if self.model.check_collision_walls_doors(current, neighbor):
-                    continue
+                    if neighbor not in grid:
+                        continue
+                    if neighbor in closed_list:
+                        continue
+                    cost = grid[neighbor]
+                    tentative_cost = cost_so_far[current] + cost
 
-                if neighbor not in self.model.grid_details or neighbor in cost_so_far:
-                    continue
+                    if neighbor not in cost_so_far or tentative_cost < cost_so_far[neighbor]:
+                        cost_so_far[neighbor] = tentative_cost
 
-                if not self.model.grid.is_cell_empty(neighbor):
-                    continue
+                        # Verificar si hay un objetivo válido
+                        valid_goals = [self.heuristic(neighbor, goal) for goal in goals]
 
-                new_cost = cost_so_far[current] + self.model.grid_details.get(neighbor, 1)
-                if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
-                    cost_so_far[neighbor] = new_cost
-                    priority = new_cost + min(self.heuristic(neighbor, goal) for goal in goals)
-                    heappush(open_list, (priority, neighbor))
-                    came_from[neighbor] = current
+                        if valid_goals:
+                            priority = tentative_cost + min(valid_goals)
+                        else:
+                            # Si no hay objetivos válidos, usar la ubicación del agente
+                            priority = tentative_cost + self.heuristic(neighbor, ag)
 
-        return []  # No se encontró un camino
+                        heapq.heappush(open_list, (priority, neighbor))
+                        came_from[neighbor] = current
+            return [ag]  # no path found
+        else:
+            return [ag]
     
     def move_towards(self, target):
         """Mueve al agente hacia un objetivo usando A*."""
         if self.pos == target:
             return True  # El agente ya está en la celda objetivo
 
-        path = self.a_star(self.pos, [target])
+        path = self.a_star(self.model.grid_details, self.pos, [target])
         if not path:
             print(f"Agente {self.unique_id} no puede alcanzar el objetivo desde {self.pos}.")
             return False  # No se encontró un camino
@@ -224,6 +235,20 @@ class LuigiAgent(Agent):
                     print(f"[DEBUG] Agente {self.unique_id} no encuentra más fuego ni humo.")
                     break
 
+    def open_door(self,coord1, coord2):
+      if coord1 in self.model.exit_positions and coord2 in self.model.exit_positions:
+          self.model.exit_positions[coord1] = True
+          self.model.exit_positions[coord2] = True
+          self.action_history.append(f"open door:{coord1}-{coord2}")
+          self.action_points -= 1
+
+    def close_door(self,coord1, coord2):
+      if coord1 in self.model.exit_positions and coord2 in self.model.exit_positions:
+          self.model.exit_positions[coord1] = False
+          self.model.exit_positions[coord2] = False
+          self.action_history.append(f"close door:{coord1}-{coord2}")
+          self.action_points -= 1
+
     def step(self):
         """Función que ejecuta el paso de un agente."""
         print(f"\n[DEBUG] Agente {self.unique_id} ({self.role}) inicia su turno en posición {self.pos}. Energía inicial: {self.action_points}.")
@@ -235,6 +260,9 @@ class LuigiAgent(Agent):
 
         print(f"[DEBUG] Agente {self.unique_id} ({self.role}) termina su turno en posición {self.pos}. Energía restante: {self.action_points}.")
         
+        # Esparcir fuego
+        self.model.spread_boos()
+
         # Restaurar la energía para el próximo turno
         self.action_points += 4
 

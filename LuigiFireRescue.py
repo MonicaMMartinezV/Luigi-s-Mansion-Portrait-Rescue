@@ -1,5 +1,5 @@
 from MansionModel import MansionModel
-from LuigiAgent import LuigiAgent
+from LuigiAgentTest import LuigiAgent
 
 # Librerías de visualización y gráficos
 import matplotlib.pyplot as plt  # Creación y personalización de gráficos
@@ -124,7 +124,7 @@ for sim in range(NUM_SIMULACIONES):
     time.sleep(WAIT_TIME) if DEVELOPMENT_MODE else None
     
     steps = 0
-    while model.step_count <= 1000:
+    while model.step_count <= 1:
         model.step()
         steps += 1
 

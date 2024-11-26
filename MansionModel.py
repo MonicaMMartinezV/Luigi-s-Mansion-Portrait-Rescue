@@ -101,11 +101,11 @@ class MansionModel(Model):
         # Imprimir las coordenadas del grid
         print_grid_coordinates(self.grid_width, self.grid_height)
 
-        # Inicializar el grid de muros respetando el rango válido
+      # Inicializar el grid de muros respetando el rango válido
         self.grid_walls = {
             (x, y): ["0000", "0000"]
-            for y in range(1, self.grid_height - 1)
-            for x in range(1, self.grid_width - 1)
+            for y in range(1, self.grid_height)
+            for x in range(1, self.grid_width)
         }
 
         # Configurar los muros desde self.wall_config
@@ -116,6 +116,41 @@ class MansionModel(Model):
                     # Convertir la lista de valores en string, si es necesario
                     wall_value = ''.join(map(str, walls))
                     self.grid_walls[(x, y)][0] = wall_value  # Asignar el valor a la celda
+
+        # Eliminar paredes donde hay puertas
+        #for coordinate in self.grid_walls:
+        #    walls = self.grid_walls[coordinate]
+        #    walls_list = list(walls[0])
+
+            # Initialize door detection
+        #    up_door = False
+        #    left_door = False
+        #    down_door = False
+        #    right_door = False
+
+            # Check for doors in exit_positions_items
+        #    for door, _ in self.exit_positions.items():
+        #        x1, y1, x2, y2 = door
+
+                # Up door
+        #        if (door[3], door[2]) == (coordinate[0], coordinate[1]) and (door[1], door[0]) == (coordinate[0], coordinate[1]-1):
+        #            up_door = True
+        #            walls_list[0] = '0'
+                # Right door
+        #        elif (door[0], door[1]) == coordinate and (door[2], door[3]) == (coordinate[0] + 1, coordinate[1]):
+        #            right_door = True
+        #            walls_list[3] = '0'
+                # Left door
+        #        elif (door[0], door[1]) == coordinate and (door[2], door[3]) == (coordinate[0], coordinate[1] - 1):
+        #            left_door = True
+        #            walls_list[1] = '0'
+                # Down door
+        #        elif (door[0], door[1]) == coordinate and (door[2], door[3]) == (coordinate[0], coordinate[1] + 1):
+        #            down_door = True
+        #            walls_list[2] = '0'
+
+        #    updated_walls = "".join(walls_list)
+        #    self.grid_walls[coordinate] = (updated_walls, walls[1])  # Reasignar modificaciones de paredes a grid
 
         # Imprimir la configuración final de los muros para verificación
         print("[INFO] Configuración inicial de muros:")
@@ -432,6 +467,16 @@ class MansionModel(Model):
         else:
             doors_blocked = True
         return wall_blocked and doors_blocked
+    
+    def check_walls(self, start, next):
+        """Verifica si hay una colisión entre dos posiciones."""
+        direction = self.direction(start, next)
+
+        # Revisar si hay una pared en el camino
+        wall_blocked = direction is not None and self.grid_walls[start][0][direction] == '1'
+
+        print(f"[DEBUG] Collision check from {start} to {next}: wall_blocked={wall_blocked}.")
+        return wall_blocked
 
     def process_flashover(self):
         """Procesa la expansión de incendios y fantasmas."""
