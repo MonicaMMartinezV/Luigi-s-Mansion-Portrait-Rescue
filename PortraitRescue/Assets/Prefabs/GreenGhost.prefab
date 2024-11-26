@@ -175,6 +175,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2346484390901248088}
+  - component: {fileID: 7842274802359538612}
   m_Layer: 0
   m_Name: GreenGhost
   m_TagString: Untagged
@@ -190,7 +191,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8250760236512227353}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -1, z: 0, w: 0}
+  m_LocalRotation: {x: -0, y: -0.9063078, z: 0, w: -0.4226182}
   m_LocalPosition: {x: 5.72, y: -3.75, z: 6.46}
   m_LocalScale: {x: 14.721016, y: 14.721016, z: 14.721016}
   m_ConstrainProportionsScale: 0
@@ -199,7 +200,21 @@ Transform:
   - {fileID: 4330334927442293507}
   - {fileID: 3711291758691513758}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -230, z: 0}
+--- !u!114 &7842274802359538612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8250760236512227353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f9c348ad7d096845840b7f1bb593409, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  amplitude: 1
+  frequency: 7
 --- !u!1 &8712655908779745055
 GameObject:
   m_ObjectHideFlags: 0

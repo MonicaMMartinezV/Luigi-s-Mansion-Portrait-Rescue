@@ -297,19 +297,68 @@ public class SimulationController : MonoBehaviour
         }
     }
 
+    IEnumerator AnimateSmokeAppearance(GameObject smoke, float duration)
+    {
+        float elapsedTime = 0f;
+        
+        // Tamaño y rotación inicial
+        Vector3 initialScale = Vector3.zero; // Comienza desde escala cero
+        Vector3 finalScale = Vector3.one* 14.72102f;    // Tamaño final normal
+        Quaternion initialRotation = Quaternion.Euler(0, 0, 0); // Rotación inicial
+        Quaternion finalRotation = smoke.transform.rotation;    // Rotación final deseada
+        
+        // Aplicar el tamaño inicial
+        smoke.transform.localScale = initialScale;
+        smoke.transform.rotation = initialRotation;
+
+        // Animar la escala y rotación
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsedTime / duration);
+
+            // Interpolación para la escala y la rotación
+            smoke.transform.localScale = Vector3.Lerp(initialScale, finalScale, t);
+            smoke.transform.rotation = Quaternion.Lerp(initialRotation, finalRotation, t);
+
+            yield return null; // Esperar el siguiente frame
+        }
+
+        // Asegurar el tamaño y rotación finales
+        smoke.transform.localScale = finalScale;
+        smoke.transform.rotation = finalRotation;
+    }
+
     GameObject InstantiateSmokePrefab(int x, int y)
     {
-        GameObject floor = GameObject.Find($"Floor ({x},{y})");
-        if (floor != null)
+        GameObject cell = GameObject.Find($"Floor ({x},{y})");
+
+        if (cell != null)
         {
-            Vector3 position = floor.transform.position + new Vector3(0, 1f, 0); // Posición encima del suelo
-            GameObject smoke = Instantiate(smokePrefab, position, Quaternion.identity);
-            smoke.name = $"Smoke ({x},{y})"; // Asignar un nombre al prefab
+            Debug.Log($"Instanciando humo en la celda: ({x}, {y})");
+
+            // Obtener la posición de la celda
+            Vector3 cellPosition = cell.transform.position;
+
+            // Crear la nueva posición ajustada
+            float offsetX = 8.89999962f - 45.9133606f;
+            float offsetY = 1.05304384f - 0f;
+            float offsetZ = 176.300003f - 139.199997f;
+            Vector3 adjustedPosition = new Vector3(cellPosition.x + offsetX, cellPosition.y + offsetY, cellPosition.z + offsetZ);
+
+            // Instanciar el prefab del humo
+            GameObject smoke = Instantiate(smokePrefab, adjustedPosition, Quaternion.Euler(0, -230f, 0));
+
+            // Iniciar la corutina para animar el humo
+            StartCoroutine(AnimateSmokeAppearance(smoke, 2f)); // 2 segundos de duración
+
+            smoke.name = $"Smoke ({x},{y})";
+
             return smoke;
         }
         else
         {
-            Debug.LogWarning($"No se encontró el suelo en ({x},{y}) para colocar el humo.");
+            Debug.LogWarning($"No se encontró la celda en: ({x}, {y})");
             return null;
         }
     }
