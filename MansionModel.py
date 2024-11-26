@@ -505,17 +505,12 @@ class MansionModel(Model):
             if self.grid_details[point] == 2:
                 del self.portraits[point]
                 self.casualties += 1
+                self.log_event({
+                        "type": "portrait_lost",
+                        "position": point,
+                        "step": self.step_count
+                    })
                 break
-    
-    #def process_flashover(self):
-    #    """Procesa la expansión de incendios y verifica condiciones de explosión."""
-    #    smoke_cells = [pos for pos, val in self.grid_details.items() if val == 1]
-    #    for smoke_cell in smoke_cells:
-    #        neighbors = self.grid.get_neighborhood(smoke_cell, moore=False, include_center=False)
-    #        for neighbor in neighbors:
-    #            if self.grid_details[neighbor] == 2:  # Fuego cerca del humo
-    #                #self.trigger_explosion(smoke_cell)  # Inicia explosión
-    #                break
 
     def update_simulation_status(self):
         """Actualiza el estado de la simulación."""
