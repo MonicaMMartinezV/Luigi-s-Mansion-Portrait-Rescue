@@ -117,41 +117,6 @@ class MansionModel(Model):
                     wall_value = ''.join(map(str, walls))
                     self.grid_walls[(x, y)][0] = wall_value  # Asignar el valor a la celda
 
-        # Eliminar paredes donde hay puertas
-        #for coordinate in self.grid_walls:
-        #    walls = self.grid_walls[coordinate]
-        #    walls_list = list(walls[0])
-
-            # Initialize door detection
-        #    up_door = False
-        #    left_door = False
-        #    down_door = False
-        #    right_door = False
-
-            # Check for doors in exit_positions_items
-        #    for door, _ in self.exit_positions.items():
-        #        x1, y1, x2, y2 = door
-
-                # Up door
-        #        if (door[3], door[2]) == (coordinate[0], coordinate[1]) and (door[1], door[0]) == (coordinate[0], coordinate[1]-1):
-        #            up_door = True
-        #            walls_list[0] = '0'
-                # Right door
-        #        elif (door[0], door[1]) == coordinate and (door[2], door[3]) == (coordinate[0] + 1, coordinate[1]):
-        #            right_door = True
-        #            walls_list[3] = '0'
-                # Left door
-        #        elif (door[0], door[1]) == coordinate and (door[2], door[3]) == (coordinate[0], coordinate[1] - 1):
-        #            left_door = True
-        #            walls_list[1] = '0'
-                # Down door
-        #        elif (door[0], door[1]) == coordinate and (door[2], door[3]) == (coordinate[0], coordinate[1] + 1):
-        #            down_door = True
-        #            walls_list[2] = '0'
-
-        #    updated_walls = "".join(walls_list)
-        #    self.grid_walls[coordinate] = (updated_walls, walls[1])  # Reasignar modificaciones de paredes a grid
-
         # Imprimir la configuración final de los muros para verificación
         print("[INFO] Configuración inicial de muros:")
         for coord, walls in sorted(self.grid_walls.items()):  # Ordenar por coordenadas
@@ -222,7 +187,6 @@ class MansionModel(Model):
                         # Eliminar fuego o humo y colocar el retrato en su lugar
                         self.grid_details[candidate_point] = 0  # Eliminar humo/fuego
                         print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
-
                     # Agregar un nuevo retrato (víctima o falsa alarma)
                     portrait_type = "victim" 
                     self.portraits[candidate_point] = portrait_type
@@ -263,7 +227,7 @@ class MansionModel(Model):
                 self.grid_details[target_pos] = 2
                 print(f"[INFO] Nuevo fuego agregado en {target_pos}")
                 self.log_event({
-                    "type": "fire_added",
+                    "type": "smoke_to_fire",
                     "position": target_pos,
                     "step": self.step_count
                 })
@@ -278,11 +242,18 @@ class MansionModel(Model):
                             else:
                                 self.grid_details[neighbor] = 2
                                 self.boo_zones.append(neighbor)
-                                print(f"[INFO] Nuevo fuego extendido de {target_pos} a {neighbor}")
-                                self.log_event({
-                                    "type": "fire_extended",
-                                    "from": target_pos,
-                                    "to": neighbor,
+                                if self.grid_details.get(neighbor) == 0:
+                                    print(f"[INFO] Nuevo fuego extendido de {target_pos} a {neighbor}")
+                                    self.log_event({
+                                        "type": "fire_extended",
+                                        "from": target_pos,
+                                        "to": neighbor,
+                                        "step": self.step_count
+                                    })
+                                if self.grid_details.get(neighbor) == 1:
+                                    self.log_event({
+                                    "type": "smoke_to_fire",
+                                    "position": target_pos,
                                     "step": self.step_count
                                 })
                         elif self.grid_details.get(neighbor) == 2:
@@ -347,7 +318,7 @@ class MansionModel(Model):
                     self.grid_walls[target][1] = ''.join(target_counter)
                     print(f"[INFO] Daño registrado en {origin} y {target}")
                     self.log_event({
-                        "type": "damage_registered",
+                        "type": "damage_door",
                         "position": origin,
                         "step": self.step_count
                     })
@@ -391,7 +362,7 @@ class MansionModel(Model):
             self.grid_walls[origin][1] = ''.join(origin_counter)
             print(f"[INFO] Daño registrado en {origin}")
             self.log_event({
-                "type": "damage_registered",
+                "type": "damage_wall",
                 "position": origin,
                 "step": self.step_count
             })
@@ -420,10 +391,17 @@ class MansionModel(Model):
                     self.grid_details[exp_neighbor] = 2
                     self.boo_zones.append(exp_neighbor)
                     print(f"[INFO] Nuevo fuego extendido de {target} a {exp_neighbor}")
-                    self.log_event({
-                        "type": "fire_extended",
-                        "from": target,
-                        "to": exp_neighbor,
+                    if self.grid_details.get(exp_neighbor) == 0:
+                        self.log_event({
+                            "type": "fire_extended",
+                            "from": target,
+                            "to": exp_neighbor,
+                            "step": self.step_count
+                        })
+                    if self.grid_details.get(exp_neighbor) == 1:
+                        self.log_event({
+                        "type": "fire_to_smoke",
+                        "position": exp_neighbor,
                         "step": self.step_count
                     })
                     break
