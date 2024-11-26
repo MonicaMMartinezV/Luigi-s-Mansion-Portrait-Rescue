@@ -180,6 +180,10 @@ public class SimulationController : MonoBehaviour
                     {
                         HandleFireExtinguished(action);
                     }
+                    else if (action.Contains("Smoke extinguished at"))
+                    {
+                        HandleSmokeExtinguished(action);
+                    }
                     else if (action.Contains("Fire reduced to smoke at"))
                     {
                         HandleFireReducedToSmoke(action);
@@ -380,6 +384,27 @@ public class SimulationController : MonoBehaviour
             else
             {
                 Debug.LogWarning($"No se encontró el ghost en las coordenadas ({x}, {y}).");
+            }
+        }
+    }
+
+    void HandleSmokeExtinguished(string action)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(action, @"Smoke extinguished at: \((\d+), (\d+)\)");
+        if (match.Success)
+        {
+            int x = int.Parse(match.Groups[1].Value);
+            int y = int.Parse(match.Groups[2].Value);
+
+            GameObject smoke = GameObject.Find($"Smoke ({x},{y})");
+            if (smoke != null)
+            {
+                Debug.Log($"Humo extinguido en ({x}, {y}). Comenzando animación de smoke.");
+                StartCoroutine(AnimateGhost(smoke));
+            }
+            else
+            {
+                Debug.LogWarning($"No se encontró el smoke en las coordenadas ({x}, {y}).");
             }
         }
     }
