@@ -124,13 +124,12 @@ for sim in range(NUM_SIMULACIONES):
     time.sleep(WAIT_TIME) if DEVELOPMENT_MODE else None
     
     steps = 0
-    while model.step_count <= 1:
+    while model.step_count <= 1000:
         model.step()
         steps += 1
 
         # Verificar si la simulación ha terminado
         if model.update_simulation_status():
-            print(f"[DEBUG] Condición de fin alcanzada: {model.simulation_status}")
             break
 
         # Mostrar la energía de cada Luigi al final de cada turno

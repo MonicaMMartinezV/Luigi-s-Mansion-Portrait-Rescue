@@ -85,6 +85,7 @@
 * Instatite only one wall in Unity (24/11/2024)
 * Fixed of movement of firefighter and rescuer (25/11/2024)
 * Fixed the A* funtion and check walls (26/11/2024)
+* Fixed Simulation process (26/11/2024)
 
 ### Security
 
