@@ -130,6 +130,7 @@ for sim in range(NUM_SIMULACIONES):
 
         # Verificar si la simulación ha terminado
         if model.update_simulation_status():
+            print(f"[DEBUG] Condición de fin alcanzada: {model.simulation_status}")
             break
 
         # Mostrar la energía de cada Luigi al final de cada turno

@@ -198,6 +198,23 @@ class LuigiAgent(Agent):
                 if valid_exits:
                     nearest_exit = min(valid_exits, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} lleva retrato. Moviéndose hacia la salida más cercana: {nearest_exit}")
+                    
+                    # Verificar si hay puertas o paredes en el camino
+                    if self.check_collision_walls(self.pos, nearest_exit):
+                        if self.action_points >= 2:  # Verificar si tiene puntos para romper la pared
+                            print(f"[DEBUG] Agente {self.unique_id} encuentra una pared entre {self.pos} y {nearest_exit}. Rompiendo pared.")
+                            self.break_wall()
+                        else:
+                            print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para romper la pared.")
+                            break
+                    elif self.check_collision_doors(self.pos, nearest_exit):
+                        if self.action_points >= 1:  # Verificar si tiene puntos para abrir la puerta
+                            print(f"[DEBUG] Agente {self.unique_id} encuentra una puerta cerrada entre {self.pos} y {nearest_exit}. Abriendo puerta.")
+                            self.open_door(self.pos, nearest_exit)
+                        else:
+                            print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para abrir la puerta.")
+                            break
+
                     if not self.move_towards(nearest_exit):  # Detenerse si no puede moverse
                         print(f"[DEBUG] Agente {self.unique_id} no puede moverse hacia {nearest_exit}.")
                         break
@@ -225,8 +242,26 @@ class LuigiAgent(Agent):
                         # Encontrar el retrato más cercano usando Manhattan
                         nearest_portrait = min(portraits, key=lambda pos: self.heuristic(self.pos, pos))
                         print(f"[DEBUG] Agente {self.unique_id} buscando retrato. Moviéndose hacia el retrato más cercano: {nearest_portrait}")
+                        
+                        # Verificar si hay puertas o paredes en el camino
+                        if self.check_collision_walls(self.pos, nearest_portrait):
+                            if self.action_points >= 2:  # Verificar si tiene puntos para romper la pared
+                                print(f"[DEBUG] Agente {self.unique_id} encuentra una pared entre {self.pos} y {nearest_portrait}. Rompiendo pared.")
+                                self.break_wall()
+                            else:
+                                print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para romper la pared.")
+                                break
+                        elif self.check_collision_doors(self.pos, nearest_portrait):
+                            if self.action_points >= 1:  # Verificar si tiene puntos para abrir la puerta
+                                print(f"[DEBUG] Agente {self.unique_id} encuentra una puerta cerrada entre {self.pos} y {nearest_portrait}. Abriendo puerta.")
+                                self.open_door(self.pos, nearest_portrait)
+                            else:
+                                print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para abrir la puerta.")
+                                break
+
                         if not self.move_towards(nearest_portrait):  # Si no puede moverse, detenerse
                             break
+                        
                         # Verificar si llegó al retrato y procesarlo
                         if self.pos == nearest_portrait:
                             if not self.examine_portrait(nearest_portrait):  # Si no es una víctima, sigue buscando otro retrato
@@ -250,21 +285,52 @@ class LuigiAgent(Agent):
                 if fire_cells:
                     nearest_fire = min(fire_cells, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} buscando fuego. Moviéndose hacia el fuego más cercano: {nearest_fire}")
+
+                    # Verificar si hay puertas o paredes en el camino
+                    if self.check_collision_walls(self.pos, nearest_fire):
+                        if self.action_points >= 2:  # Verificar si tiene puntos para romper la pared
+                            print(f"[DEBUG] Agente {self.unique_id} encuentra una pared entre {self.pos} y {nearest_fire}. Rompiendo pared.")
+                            self.break_wall()
+                        else:
+                            print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para romper la pared.")
+                            break
+                    elif self.check_collision_doors(self.pos, nearest_fire):
+                        if self.action_points >= 1:  # Verificar si tiene puntos para abrir la puerta
+                            print(f"[DEBUG] Agente {self.unique_id} encuentra una puerta cerrada entre {self.pos} y {nearest_fire}. Abriendo puerta.")
+                            self.open_door(self.pos, nearest_fire)
+                        else:
+                            print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para abrir la puerta.")
+                            break
+
+                    # Verificar si hay puntos de acción antes de moverse
+                    fire_value = self.model.grid_details[nearest_fire]
+                    if fire_value == 2 and self.action_points < 2:  # Fuego requiere al menos 2 puntos
+                        print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para extinguir fuego.")
+                        break
+                    elif fire_value == 1 and self.action_points < 1:  # Humo requiere al menos 1 punto
+                        print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para extinguir humo.")
+                        break
+
+                    # Si tiene suficientes puntos, intentar moverse
                     if not self.move_towards(nearest_fire):  # Si no puede moverse hacia el fuego, detenerse
                         break
+
                     # Verificar si llegó al humo/fuego y procesarlo
                     if self.pos == nearest_fire:
-                        fire_value = self.model.grid_details[nearest_fire]
-                        if fire_value == 2 and self.action_points >= 2: # Si es fuego
+                        if fire_value == 2:  # Si es fuego
                             # Dependiendo de puntos, extinguir o reducir a humo
                             self.extinguish_fire(nearest_fire)
-                        elif fire_value == 1 and self.action_points >= 1: # Si tiene puntos y es humo
-                            self.extinguish_smoke(nearest_fire)     
-                        continue # Después de lidiar con el humo/fuego, sigue buscando otro
+                        elif fire_value == 1:  # Si es humo
+                            self.extinguish_smoke(nearest_fire)
+                        continue  # Después de lidiar con el humo/fuego, sigue buscando otro
                 else:
                     # Si no hay fuego, el bombero se detiene
                     print(f"[DEBUG] Agente {self.unique_id} no encuentra más fuego ni humo.")
                     break
+
+    def break_wall(self):
+      break_wall= False
+      self.action_points -= 2
 
     def open_door(self,coord1, coord2):
       if coord1 in self.model.exit_positions and coord2 in self.model.exit_positions:
