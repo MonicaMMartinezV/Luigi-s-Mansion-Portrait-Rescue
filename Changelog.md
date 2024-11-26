@@ -34,6 +34,7 @@
 * Added call to check_collision in move function for agent (24/11/2024)
 * Added check for doors as viable paths to check_collision (24/11/2024)
 * Added funtionalities of A* and heuritic using manhattan (25/11/2024)
+* Added new funtionalities to open, close doors and new funtionalities in check walls and doors (26/11/2024)
 
 ### Changed
 
@@ -58,6 +59,8 @@
 * Modified portrait spawning to extinguish fire/smoke if needed (22/11/2024)
 * Modified funtionality of spread boos/fire to adequate to the explosion funtionality (24/11/2024)
 * Modified fire-starting function to activate after every agent step (25/11/2024)
+* Modified funtionalities in A*, heuristic and some other (26/11/2024)
+
 
 ### Deprecated
 
