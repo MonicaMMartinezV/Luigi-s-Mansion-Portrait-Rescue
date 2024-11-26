@@ -36,6 +36,7 @@
 * Added funtionalities of A* and heuritic using manhattan (25/11/2024)
 * Added new funtionalities to open, close doors and new funtionalities in check walls and doors (26/11/2024)
 * Added new funtionalities to break walls and check collision walls and doors (26/11/2024)
+* Added log messages to agent actions for Unity to interpret (26/11/2024)
 
 ### Changed
 

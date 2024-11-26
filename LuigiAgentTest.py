@@ -126,6 +126,12 @@ class LuigiAgent(Agent):
 
         next_step = path[0]
         print(f"Agente {self.unique_id} se mueve de {self.pos} a {next_step}.")
+        self.model.log_event({
+            "type": "agent_move",
+            "agent": self.unique_id,
+            "from": self.pos,
+            "to": next_step,
+        })
         self.model.grid.move_agent(self, next_step)
         self.pos = next_step
         self.history.append(self.pos)
@@ -143,11 +149,23 @@ class LuigiAgent(Agent):
                 self.model.portraits[position] = None  # Eliminar la víctima rescatada
                 print(f"Agente {self.unique_id} ha encontrado una víctima en {position}.")
                 self.action_history.append(f"Portrait found at: {position}, Type: Victim")
+                self.model.log_event({
+                    "type": "found_portrait",
+                    "at": position,
+                    "agent": self.unique_id,
+                    "portrait_type": "victim",
+                })
                 return {"position": position, "type": "victim"}  # Retorna detalles
             elif portrait == "false_alarm":
                 self.model.portraits[position] = None  # Eliminar la falsa alarma
                 print(f"Agente {self.unique_id} encontró una falsa alarma en {position}.")
                 self.action_history.append(f"Portrait found at: {position}, Type: False")
+                self.model.log_event({
+                    "type": "found_portrait",
+                    "at": position,
+                    "agent": self.unique_id,
+                    "portrait_type": "False",
+                })
                 return {"position": position, "type": "false_alarm"}  # Retorna detalles
         return None  # Si no hay retrato en esa posición
 
@@ -158,6 +176,11 @@ class LuigiAgent(Agent):
             self.model.grid_details[position] = 0  # Actualizar la celda a estado vacío
             self.action_points -= 2  # Reducir puntos de acción
             self.action_history.append(f"Fire extinguished at: {position}") 
+            self.model.log_event({
+                    "type": "fire_extinguished",
+                    "agent": self.unique_id,
+                    "at": position,
+                })
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar fuego en {position}.")
 
@@ -168,10 +191,15 @@ class LuigiAgent(Agent):
             self.model.grid_details[position] -= 1   # Actualizar la celda a estado vacío
             self.action_points -= 1  # Reducir puntos de acción
             self.action_history.append(f"Smoke extinguished at: {position}") 
+            self.model.log_event({
+                    "type": "smoke_extinguished",
+                    "agent": self.unique_id,
+                    "at": position,
+                })
         else:
             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar humo en {position}.")
 
-    def move_inside_cntral_grid(self):
+    def move_inside_central_grid(self):
         if (self.pos[0] == 0):
             next_step = (1, self.pos[1])
         elif (self.pos[1] == 0):
@@ -191,6 +219,12 @@ class LuigiAgent(Agent):
         self.history.append(self.pos)
 
         print(f"[DEBUG] Agente {self.unique_id} se mueve dentro del cuadrante central en {self.pos}.")
+        self.model.log_event({
+            "type": "agent_move",
+            "from": self.pos,
+            "agent": self.unique_id,
+            "to": next_step,
+        })
 
     def rescuer_strategy(self):
         """Estrategia para agentes cuyo rol es rescatar víctimas."""
@@ -211,6 +245,12 @@ class LuigiAgent(Agent):
                         if self.action_points >= 2:  # Verificar si tiene puntos para romper la pared
                             print(f"[DEBUG] Agente {self.unique_id} encuentra una pared entre {self.pos} y {nearest_exit}. Rompiendo pared.")
                             self.break_wall()
+                            self.model.log_event({
+                                "type": "wall_destroyed",
+                                "agent": self.unique_id,
+                                "position": self.pos,
+                                "target": nearest_exit,
+                            })
                         else:
                             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para romper la pared.")
                             break
@@ -218,6 +258,12 @@ class LuigiAgent(Agent):
                         if self.action_points >= 1:  # Verificar si tiene puntos para abrir la puerta
                             print(f"[DEBUG] Agente {self.unique_id} encuentra una puerta cerrada entre {self.pos} y {nearest_exit}. Abriendo puerta.")
                             self.open_door(self.pos, nearest_exit)
+                            self.model.log_event({
+                                "type": "open_door",
+                                "agent": self.unique_id,
+                                "position": self.pos,
+                                "target": nearest_exit,
+                            })
                         else:
                             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para abrir la puerta.")
                             break
@@ -232,13 +278,19 @@ class LuigiAgent(Agent):
                         self.carrying_portrait = False  # Resetear estatus de
                         self.model.rescued += 1  # Contar el rescate en el modelo
                         print(f"[DEBUG] Agente {self.unique_id} ha rescatado a una víctima. Total rescatados: {self.model.rescued}")
+                        self.model.log_event({
+                            "type": "rescued_portrait",
+                            "agent": self.unique_id,
+                            "position": nearest_exit,
+                            "rescued": self.model.rescued,
+                        })
 
                 else:
                     print(f"[ERROR] No hay salidas válidas para el agente {self.unique_id}. Terminando turno.")
                     break 
             else:
                 if not self.in_central_grid:
-                    self.move_inside_cntral_grid()
+                    self.move_inside_central_grid()
                 else:
                     # Buscar el retrato más cercano (víctima o falsa alarma)
                     portraits = [
@@ -255,6 +307,12 @@ class LuigiAgent(Agent):
                             if self.action_points >= 2:  # Verificar si tiene puntos para romper la pared
                                 print(f"[DEBUG] Agente {self.unique_id} encuentra una pared entre {self.pos} y {nearest_portrait}. Rompiendo pared.")
                                 self.break_wall()
+                                self.model.log_event({
+                                    "type": "wall_destroyed",
+                                    "agent": self.unique_id,
+                                    "position": self.pos,
+                                    "target": nearest_exit,
+                                })
                             else:
                                 print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para romper la pared.")
                                 break
@@ -262,6 +320,12 @@ class LuigiAgent(Agent):
                             if self.action_points >= 1:  # Verificar si tiene puntos para abrir la puerta
                                 print(f"[DEBUG] Agente {self.unique_id} encuentra una puerta cerrada entre {self.pos} y {nearest_portrait}. Abriendo puerta.")
                                 self.open_door(self.pos, nearest_portrait)
+                                self.model.log_event({
+                                    "type": "open_door",
+                                    "agent": self.unique_id,
+                                    "position": self.pos,
+                                    "target": nearest_exit,
+                                })
                             else:
                                 print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para abrir la puerta.")
                                 break
@@ -285,7 +349,7 @@ class LuigiAgent(Agent):
                 continue
 
             if not self.in_central_grid:
-                self.move_inside_cntral_grid()
+                self.move_inside_central_grid()
             else:
                 # Buscar la celda más cercana con humo (valor 1) o fuego (valor 2)
                 fire_cells = [pos for pos, value in self.model.grid_details.items() if value == 1 or value == 2]
@@ -298,6 +362,12 @@ class LuigiAgent(Agent):
                         if self.action_points >= 2:  # Verificar si tiene puntos para romper la pared
                             print(f"[DEBUG] Agente {self.unique_id} encuentra una pared entre {self.pos} y {nearest_fire}. Rompiendo pared.")
                             self.break_wall()
+                            self.model.log_event({
+                                "type": "wall_destroyed",
+                                "agent": self.unique_id,
+                                "position": self.pos,
+                                "target": nearest_fire,
+                            })
                         else:
                             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para romper la pared.")
                             break
@@ -305,6 +375,12 @@ class LuigiAgent(Agent):
                         if self.action_points >= 1:  # Verificar si tiene puntos para abrir la puerta
                             print(f"[DEBUG] Agente {self.unique_id} encuentra una puerta cerrada entre {self.pos} y {nearest_fire}. Abriendo puerta.")
                             self.open_door(self.pos, nearest_fire)
+                            self.model.log_event({
+                                "type": "open_door",
+                                "agent": self.unique_id,
+                                "position": self.pos,
+                                "target": nearest_fire,
+                            })
                         else:
                             print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para abrir la puerta.")
                             break
@@ -365,9 +441,10 @@ class LuigiAgent(Agent):
 
         print(f"[DEBUG] Agente {self.unique_id} ({self.role}) termina su turno en posición {self.pos}. Energía restante: {self.action_points}.")
         
-        # Esparcir fuego
+        # Esparcir retratos (si es necesario) y fuego
         self.model.add_portraits()
         self.model.spread_boos()
+
         # Restaurar la energía para el próximo turno
         self.action_points += 4
 
