@@ -311,7 +311,7 @@ class LuigiAgent(Agent):
                                     "type": "wall_destroyed",
                                     "agent": self.unique_id,
                                     "position": self.pos,
-                                    "target": nearest_exit,
+                                    "target": nearest_portrait,
                                 })
                             else:
                                 print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para romper la pared.")
@@ -324,7 +324,7 @@ class LuigiAgent(Agent):
                                     "type": "open_door",
                                     "agent": self.unique_id,
                                     "position": self.pos,
-                                    "target": nearest_exit,
+                                    "target": nearest_portrait,
                                 })
                             else:
                                 print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para abrir la puerta.")
