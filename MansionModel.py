@@ -506,7 +506,6 @@ class MansionModel(Model):
                  if point in self.portraits:  # Solo contar si hay un retrato
                     del self.portraits[point]
                     self.casualties += 1
-                    self.casualties += 1
                     self.log_event({
                             "type": "portrait_lost",
                             "position": point,

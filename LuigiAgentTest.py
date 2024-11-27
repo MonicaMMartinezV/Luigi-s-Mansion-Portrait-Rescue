@@ -52,7 +52,7 @@ class LuigiAgent(Agent):
 
                     cost = grid[neighbor]
                     if self.check_collision_walls(current, neighbor):
-                        cost += 2
+                        cost += 4
                     if self.check_collision_doors(current, neighbor):
                         cost += 1
 
