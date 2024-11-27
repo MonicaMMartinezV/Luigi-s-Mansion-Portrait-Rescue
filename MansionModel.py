@@ -318,7 +318,7 @@ class MansionModel(Model):
                                         "to": neighbor,
                                         "step": self.step_count
                                     })
-                                else:
+                                if self.grid_details.get(neighbor) == 1:
                                     self.log_event({
                                     "type": "smoke_to_fire",
                                     "position": target_pos,

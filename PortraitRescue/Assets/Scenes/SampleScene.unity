@@ -578,7 +578,7 @@ MonoBehaviour:
   casualties: 0
   damage: 0
   saved: 0
-  moveSpeed: 1000
+  moveSpeed: 10000
   simulationApiUrl: http://127.0.0.1:5000/run_simulation
 --- !u!1 &394663808
 GameObject:
