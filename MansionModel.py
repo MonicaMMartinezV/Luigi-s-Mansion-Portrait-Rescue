@@ -207,45 +207,70 @@ class MansionModel(Model):
         self.model_events.append(event)
 
     def add_portraits(self):
-        """Agrega retratos si hay menos de 3 activos dentro del área central del grid."""
-        active_points = sum(1 for portrait in self.portraits.values() if portrait in ["victim", "false_alarm"])
+        """Agrega retratos alternando entre víctimas y falsas alarmas hasta completar el total deseado."""
+        total_victims = sum(1 for portrait in self.portraits.values() if portrait == "victim")
+        total_false_alarms = sum(1 for portrait in self.portraits.values() if portrait == "false_alarm")
+
+        max_victims = 10
+        max_false_alarms = 5
+
+        active_points = total_victims + total_false_alarms
+        needed_points = 3 - active_points
+
         reduced = False
-        if active_points < 3:
-            needed_points = 3 - active_points
-            new_points = 0
+        new_points = 0
 
-            # Definir el área central del grid
-            central_area = [
-                (x, y) for x in range(1, 9) for y in range(1, 7)
-            ]
+        # Definir el área central del grid
+        central_area = [
+            (x, y) for x in range(1, 9) for y in range(1, 7)
+        ]
 
-            while new_points < needed_points:
-                candidate_point = random.choice(central_area)
-                if candidate_point not in self.portraits:
-                    if self.grid_details.get(candidate_point) in [1, 2]:  # 1 para humo, 2 para fuego
-                        # Eliminar fuego o humo y colocar el retrato en su lugar
-                        self.grid_details[candidate_point] = 0  # Eliminar humo/fuego
-                        reduced = True
-                        print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
-                    # Agregar un nuevo retrato (víctima o falsa alarma)
-                    portrait_type = "victim" 
-                    self.portraits[candidate_point] = portrait_type
-                    self.grid_details[candidate_point] = 0
-                    new_points += 1
-                    print(f"[INFO] Nuevo retrato agregado en {candidate_point}: {portrait_type}")
-                    self.log_event({
-                        "type": "portrait_added",
-                        "position": candidate_point,
-                        "portrait_type": portrait_type,
-                        "step": self.step_count
-                    })
-            if reduced:
+        # Alternar entre victim y false_alarm
+        next_type = "victim" if total_victims <= total_false_alarms else "false_alarm"
+
+        while new_points < needed_points:
+            if total_victims >= max_victims and total_false_alarms >= max_false_alarms:
+                break  # No agregar más si ambos tipos han alcanzado su límite
+
+            candidate_point = random.choice(central_area)
+            if candidate_point not in self.portraits:
+                if self.grid_details.get(candidate_point) in [1, 2]:  # 1 para humo, 2 para fuego
+                    # Eliminar fuego o humo y colocar el retrato en su lugar
+                    self.grid_details[candidate_point] = 0  # Eliminar humo/fuego
+                    reduced = True
+                    print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
+
+                # Agregar el retrato del tipo correspondiente
+                if next_type == "victim" and total_victims < max_victims:
+                    self.portraits[candidate_point] = "victim"
+                    total_victims += 1
+                elif next_type == "false_alarm" and total_false_alarms < max_false_alarms:
+                    self.portraits[candidate_point] = "false_alarm"
+                    total_false_alarms += 1
+                else:
+                    continue  # Saltar si no es posible añadir el tipo actual
+
+                self.grid_details[candidate_point] = 0
+                new_points += 1
+                print(f"[INFO] Nuevo retrato agregado en {candidate_point}: {self.portraits[candidate_point]}")
                 self.log_event({
-                    "type": "fire_removed_to_portrait",
+                    "type": "portrait_added",
                     "position": candidate_point,
-                    "portrait_type": portrait_type,
+                    "portrait_type": self.portraits[candidate_point],
                     "step": self.step_count
                 })
+
+                # Alternar el tipo para el siguiente retrato
+                next_type = "victim" if next_type == "false_alarm" else "false_alarm"
+
+        if reduced:
+            self.log_event({
+                "type": "fire_removed_to_portrait",
+                "position": candidate_point,
+                "portrait_type": self.portraits[candidate_point],
+                "step": self.step_count
+            })
+
 
     def spread_boos(self):
         """Extiende la presencia de fantasmas únicamente dentro del área central del grid."""
@@ -494,25 +519,30 @@ class MansionModel(Model):
 
     def process_flashover(self):
         """Procesa la expansión de incendios y fantasmas."""
+        # Expandir incendios: convertir humo en fuego si hay fuego en vecinos
         smoke_cells = [pos for pos, val in self.grid_details.items() if val == 1]
         for smoke_cell in smoke_cells:
             neighbors = self.grid.get_neighborhood(smoke_cell, moore=False, include_center=False)
             for neighbor in neighbors:
-                if self.grid_details[neighbor] == 2:
-                    self.grid_details[smoke_cell] = 2
-                    break
-        for point in list(self.portraits):
-            if self.grid_details[point] == 2:
-                 if point in self.portraits:  # Solo contar si hay un retrato
-                    del self.portraits[point]
-                    self.casualties += 1
-                    self.log_event({
-                            "type": "portrait_lost",
-                            "position": point,
-                            "step": self.step_count
-                        })
+                if self.grid_details[neighbor] == 2:  # Si hay fuego en un vecino
+                    self.grid_details[smoke_cell] = 2  # Convertir el humo en fuego
                     break
 
+        # Procesar puntos con retratos afectados por el fuego
+        for point in list(self.portraits):
+            if self.grid_details[point] == 2:  # Si hay fuego en el punto del retrato
+                portrait_type = self.portraits[point]
+                del self.portraits[point]  # Eliminar el retrato
+                if portrait_type == "victim":  # Incrementar bajas solo si es víctima
+                    self.casualties += 1
+                    self.log_event({
+                        "type": "portrait_lost",
+                        "position": point,
+                        "portrait_type": portrait_type,
+                        "step": self.step_count
+                    })
+                    break
+                
     def update_simulation_status(self):
         """Actualiza el estado de la simulación."""
         if self.casualties >= 4 or self.damage_counter >= 24:
