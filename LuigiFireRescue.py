@@ -111,7 +111,7 @@ LUIGIS = 6
 WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt(file_path)
 
 # Definir el número de simulaciones que quieres ejecutar
-NUM_SIMULACIONES = 10000
+NUM_SIMULACIONES = 1000
 
 # Para almacenar los resultados de cada simulación
 resultados_simulaciones = []
@@ -188,3 +188,42 @@ for resultado in resultados_simulaciones:
     if resultado['state'] == "Victory":
         count_victory +=1
 print(f"Numero de victorias: {count_victory}")
+
+# Contadores de estados de las simulaciones
+victorias = sum(1 for resultado in resultados_simulaciones if resultado["state"] == "Victory")
+derrotas = sum(1 for resultado in resultados_simulaciones if resultado["state"] == "Defeat")
+
+# Datos para la gráfica
+labels = ["Victorias", "Derrotas"]
+valores = [victorias, derrotas]
+colores = ["#4CAF50", "#F44336"]  # Verde, rojo, amarillo
+
+# Crear la gráfica de pastel mejorada
+plt.figure(figsize=(8, 8))
+explode = (0.05, 0.05)  # Separar ligeramente cada sector
+wedges, texts, autotexts = plt.pie(
+    valores,
+    labels=labels,
+    autopct="%1.1f%%",
+    startangle=90,
+    colors=colores,
+    textprops={"fontsize": 12},
+    explode=explode,  # Efecto de separación
+    shadow=True  # Agregar sombra
+)
+
+# Personalizar la leyenda
+plt.legend(wedges, labels, title="Resultados", loc="best", fontsize=10)
+
+# Agregar título
+plt.title("Resultados de las 1000 Simulaciones Con Estrategia (Atravesar Paredes)", fontsize=16, fontweight='bold')
+
+# Mejorar las etiquetas automáticas
+for autotext in autotexts:
+    autotext.set_color('white')  # Cambia el color de las etiquetas de porcentaje
+    autotext.set_fontsize(14)  # Ajusta el tamaño de la fuente
+
+# Mostrar la gráfica
+plt.tight_layout()  # Ajusta automáticamente los márgenes
+plt.show()
+
