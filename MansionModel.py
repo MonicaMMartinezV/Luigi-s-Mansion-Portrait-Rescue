@@ -16,9 +16,8 @@ class MansionModel(Model):
         # Inicializar la clase base Model sin argumentos adicionales
         
         super().__init__()
-
-        print(f"Seed: {seed}")
-        random.seed(seed)
+        
+        print(f"Corriendo con semilla: {seed}")
 
         # Variables iniciales del modelo
         self.step_count        = 0
@@ -28,6 +27,7 @@ class MansionModel(Model):
         self.casualties        = 0
         #self.saved_count      = 0
         self.simulation_status = "In progress"
+        self.simulation_end    = ""
         self.boo_zones         = [(row, col) for col, row in boo]
         self.wall_config       = walls
         self.mode              = mode
@@ -164,7 +164,7 @@ class MansionModel(Model):
 
             # Asignar un agente "rescuer" en esta posición
             role = "rescuer"
-            agent = LuigiAgent(idx, self, role)
+            agent = LuigiAgent(idx, self, role, position)
             agent.unique_id = idx
             self.grid.place_agent(agent, position)
             self.schedule.add(agent)
@@ -178,7 +178,7 @@ class MansionModel(Model):
             # Asignar un agente "firefighter" en la siguiente posición, separada
             next_position = adjusted_positions[(i + 1) % len(adjusted_positions)]  # Usar la siguiente posición
             role = "firefighter"
-            agent = LuigiAgent(idx, self, role)
+            agent = LuigiAgent(idx, self, role, next_position)
             agent.unique_id = idx
             self.grid.place_agent(agent, next_position)
             self.schedule.add(agent)
@@ -191,7 +191,7 @@ class MansionModel(Model):
             for _ in range(total_agents):
                 position = adjusted_positions[idx % len(adjusted_positions)]
                 role = next(agent_roles)
-                agent = LuigiAgent(idx, self, role)
+                agent = LuigiAgent(idx, self, role, position)
                 agent.unique_id = idx
                 self.grid.place_agent(agent, position)
                 self.schedule.add(agent)
@@ -206,50 +206,73 @@ class MansionModel(Model):
         self.model_events.append(event)
 
     def add_portraits(self):
-        """Agrega retratos si hay menos de 3 activos dentro del área central del grid."""
-        active_points = sum(1 for portrait in self.portraits.values() if portrait in ["victim", "false_alarm"])
-        print(f"[DEBUG] Portraits en el tablero: {active_points}")
-        if active_points <= 3:
-            needed_points = 3 - active_points
-            new_points = 0
+        """Agrega retratos alternando entre víctimas y falsas alarmas hasta completar el total deseado."""
+        total_victims = sum(1 for portrait in self.portraits.values() if portrait == "victim")
+        total_false_alarms = sum(1 for portrait in self.portraits.values() if portrait == "false_alarm")
 
-            # Definir el área central del grid
-            central_area = [
-                (x, y) for x in range(1, 9) for y in range(1, 7)
-            ]
+        max_victims = 10
+        max_false_alarms = 5
 
-            while new_points < needed_points:
-                candidate_point = random.choice(central_area)
-                reduced = False
-                if candidate_point not in self.portraits:
-                    if self.grid_details.get(candidate_point) in [1, 2]:  # 1 para humo, 2 para fuego
-                        # Eliminar fuego o humo y colocar el retrato en su lugar
-                        self.grid_details[candidate_point] = 0  # Eliminar humo/fuego
-                        reduced = True
-                        print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
-                    # Agregar un nuevo retrato (víctima o falsa alarma)
-                    portrait_type = "victim" 
-                    self.portraits[candidate_point] = portrait_type
-                    self.grid_details[candidate_point] = 0
-                    new_points += 1
-                    print(f"[INFO] Nuevo retrato agregado en {candidate_point}: {portrait_type}")
-                    self.log_event({
-                        "type": "portrait_added",
-                        "position": candidate_point,
-                        "portrait_type": portrait_type,
-                        "step": self.step_count
-                    })
-                    if reduced:
-                        self.log_event({
-                            "type": "fire_removed_to_portrait",
-                            "position": candidate_point,
-                            "portrait_type": portrait_type,
-                            "step": self.step_count
-                        })
+        active_points = total_victims + total_false_alarms
+        needed_points = 3 - active_points
+
+        reduced = False
+        new_points = 0
+
+        # Definir el área central del grid
+        central_area = [
+            (x, y) for x in range(1, 9) for y in range(1, 7)
+        ]
+
+        # Alternar entre victim y false_alarm
+        next_type = "victim" if total_victims <= total_false_alarms else "false_alarm"
+
+        while new_points < needed_points:
+            if total_victims >= max_victims and total_false_alarms >= max_false_alarms:
+                break  # No agregar más si ambos tipos han alcanzado su límite
+
+            candidate_point = random.choice(central_area)
+            if candidate_point not in self.portraits:
+                if self.grid_details.get(candidate_point) in [1, 2]:  # 1 para humo, 2 para fuego
+                    # Eliminar fuego o humo y colocar el retrato en su lugar
+                    self.grid_details[candidate_point] = 0  # Eliminar humo/fuego
+                    reduced = True
+                    print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
+
+                # Agregar el retrato del tipo correspondiente
+                if next_type == "victim" and total_victims < max_victims:
+                    self.portraits[candidate_point] = "victim"
+                    total_victims += 1
+                elif next_type == "false_alarm" and total_false_alarms < max_false_alarms:
+                    self.portraits[candidate_point] = "false_alarm"
+                    total_false_alarms += 1
+                else:
+                    continue  # Saltar si no es posible añadir el tipo actual
+
+                self.grid_details[candidate_point] = 0
+                new_points += 1
+                print(f"[INFO] Nuevo retrato agregado en {candidate_point}: {self.portraits[candidate_point]}")
+                self.log_event({
+                    "type": "portrait_added",
+                    "position": candidate_point,
+                    "portrait_type": self.portraits[candidate_point],
+                    "step": self.step_count
+                })
+
+                # Alternar el tipo para el siguiente retrato
+                next_type = "victim" if next_type == "false_alarm" else "false_alarm"
+
+        if reduced:
+            self.log_event({
+                "type": "fire_removed_to_portrait",
+                "position": candidate_point,
+                "portrait_type": self.portraits[candidate_point],
+                "step": self.step_count
+            })
+
 
     def spread_boos(self):
         """Extiende la presencia de fantasmas únicamente dentro del área central del grid."""
-        print(f"Damage: {self.damage_counter}")
         # Definir el área central del grid
         central_area = [
             (x, y) for x in range(1, 9) for y in range(1, 7)
@@ -287,8 +310,6 @@ class MansionModel(Model):
                             if self.check_collision_walls_doors(target_pos, neighbor):
                                 self.register_damage_walls_doors(target_pos, neighbor)
                             else:
-                                self.grid_details[neighbor] = 2
-                                self.boo_zones.append(neighbor)
                                 if self.grid_details.get(neighbor) == 0:
                                     print(f"[INFO] Nuevo fuego extendido de {target_pos} a {neighbor}")
                                     self.log_event({
@@ -297,12 +318,14 @@ class MansionModel(Model):
                                         "to": neighbor,
                                         "step": self.step_count
                                     })
-                                if self.grid_details.get(neighbor) == 1:
+                                else:
                                     self.log_event({
                                     "type": "smoke_to_fire",
                                     "position": target_pos,
                                     "step": self.step_count
                                 })
+                                self.grid_details[neighbor] = 2
+                                self.boo_zones.append(neighbor)
                         elif self.grid_details.get(neighbor) == 2:
                             if self.check_collision_walls_doors(target_pos, neighbor):
                                 self.register_damage_walls_doors(target_pos, neighbor)
@@ -460,11 +483,6 @@ class MansionModel(Model):
                     pass
         
         return
-
-
-    def trigger_wave(self, position):
-        """Desencadena una oleada de incendios."""
-        pass
     
     def direction(self, start, next):
         """Calcula la dirección de movimiento entre dos posiciones."""
@@ -496,28 +514,72 @@ class MansionModel(Model):
 
     def process_flashover(self):
         """Procesa la expansión de incendios y fantasmas."""
+        # Expandir incendios: convertir humo en fuego si hay fuego en vecinos
         smoke_cells = [pos for pos, val in self.grid_details.items() if val == 1]
         for smoke_cell in smoke_cells:
             neighbors = self.grid.get_neighborhood(smoke_cell, moore=False, include_center=False)
             for neighbor in neighbors:
-                if self.grid_details[neighbor] == 2:
-                    self.grid_details[smoke_cell] = 2
-                    break
+                if self.grid_details[neighbor] == 2:  # Si hay fuego en un vecino
+                    check_wall = self.check_collision_walls(smoke_cell, neighbor)
+                    if not check_wall:
+                        self.grid_details[smoke_cell] = 2  # Convertir el humo en fuego
+                        print(f"[INFO] Humo {smoke_cell} se convierte en fuego.")
+                        break
+
+        # Procesar puntos con retratos afectados por el fuego
         for point in list(self.portraits):
-            if self.grid_details[point] == 2:
-                del self.portraits[point]
-                self.casualties += 1
-                self.log_event({
+            if self.grid_details[point] == 2:  # Si hay fuego en el punto del retrato
+                portrait_type = self.portraits[point]
+                del self.portraits[point]  # Eliminar el retrato
+                if portrait_type == "victim":  # Incrementar bajas solo si es víctima
+                    self.casualties += 1
+                    self.log_event({
                         "type": "portrait_lost",
                         "position": point,
+                        "portrait_type": portrait_type,
                         "step": self.step_count
                     })
-                break
+                    break
+        
+        for cell in self.grid.coord_iter():
+            if len(cell[0]) == 0:
+                continue
+
+            if self.grid_details[cell[1]] == 2:
+                agents = cell[0]
+                for agent in agents:
+                    agent.reset()
+
+            #agents_in_cell = list(cell_content)  # Agentes en la celda actual
+            #print(f"Agentes en la celda ({x}, {y}): {agents_in_cell}")
+
+    def check_collision_walls(self, start, next):
+        """Verifica si hay una colisión entre dos posiciones."""
+        direction = self.direction(start, next)
+        combined_possn = start + next
+        combined_posns = next + start
+
+        # Verifica si la posición 'start' está en el grid_walls
+        if start in self.grid_walls:
+            wall_blocked = direction is not None and self.grid_walls[start][0][direction] == '1'
+        else:
+            wall_blocked = False  # No hay colisión si la posición no está en el grid
+
+        # Comprueba si la posición combinada está en las salidas
+        if (combined_possn in self.exit_positions or 
+            combined_posns in self.exit_positions):
+            wall_blocked = False  # No bloquear si está en una posición de salida
+        
+        return wall_blocked
 
     def update_simulation_status(self):
         """Actualiza el estado de la simulación."""
         if self.casualties >= 4 or self.damage_counter >= 24:
             self.simulation_status = "Defeat"
+            if self.casualties >=4:
+                self.simulation_end = "Defeat by dead victims"
+            if self.damage_counter >=24:
+                self.simulation_end = "Defeat by damage"
             return True
         elif self.rescued >= 7:
             self.simulation_status = "Victory"
@@ -545,6 +607,7 @@ class MansionModel(Model):
         # Iterar sobre los agentes según su ID
         for agent in sorted(self.schedule.agents, key=lambda a: a.unique_id):
             agent.step()
+            self.process_flashover()
 
         # Mostrar la energía restante de todos los agentes al final del turno
         print("\n[DEBUG] Energía de los agentes al final del turno:")
@@ -552,5 +615,5 @@ class MansionModel(Model):
             print(f"  - Agente {agent.unique_id} ({agent.role}): {agent.action_points} de energía.")
         
         # Realizar procesos adicionales del modelo
-        self.process_flashover()
+        
         self.update_simulation_status()

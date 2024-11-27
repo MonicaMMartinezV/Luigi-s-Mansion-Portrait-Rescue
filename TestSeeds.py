@@ -1,5 +1,5 @@
 from MansionModel import MansionModel
-from LuigiAgent import LuigiAgent
+from LuigiAgentTest import LuigiAgent
 
 # Librerías de visualización y gráficos
 import matplotlib.pyplot as plt  # Creación y personalización de gráficos
@@ -19,11 +19,13 @@ import time  # Proporciona funciones para trabajar con fechas y horas
 from http.server import BaseHTTPRequestHandler, HTTPServer  # Implementa un servidor HTTP básico para manejar solicitudes
 import logging  # Registro de eventos y errores del servidor, útil para el diagnóstico
 import json  # Proporciona funciones para manejar datos en formato JSON, útil para comunicación entre aplicaciones
+import random
+import time
 
 import heapq
 from queue import Queue
 
-DEVELOPMENT_MODE = True
+DEVELOPMENT_MODE = False
 WAIT_TIME = 0.01
 
 def procesar_txt(file_path):
@@ -57,7 +59,7 @@ def procesar_txt(file_path):
     FIRES = []
     for _ in range(10):  # 10 líneas de fuego
         r, c = map(int, lines[index].strip().split())
-        FIRES.append((c, r))
+        FIRES.append((r, c))
         index += 1
 
     # Procesar marcadores de puertas
@@ -65,10 +67,12 @@ def procesar_txt(file_path):
     DOORS_CONNECTED = {}
     for _ in range(8):  # 8 líneas de puertas
         r1, c1, r2, c2 = map(int, lines[index].strip().split())
-        r1, c1, r2, c2 = r1, c1, r2, c2
-        DOORS[(r1, c1, r2, c2)] = (r1, c1, r2, c2)
-        DOORS_CONNECTED[(r1, c1)] = (r2, c2)
-        DOORS_CONNECTED[(r2, c2)] = (r1, c1)
+        # Reorganizar las coordenadas al formato (c1, r1, c2, r2)
+        c1, r1, c2, r2 = c1, r1, c2, r2
+        # Almacenar las puertas con el formato reorganizado
+        DOORS[(c1, r1, c2, r2)] = (c1, r1, c2, r2)
+        DOORS_CONNECTED[(c1, r1)] = (c2, r2)
+        DOORS_CONNECTED[(c2, r2)] = (c1, r1)
         index += 1
 
     # Procesar puntos de entrada
@@ -106,12 +110,15 @@ LUIGIS = 6
 WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt(file_path)
 
 # Definir el número de simulaciones que quieres ejecutar
-NUM_SIMULACIONES = 1
+NUM_SIMULACIONES = 2
 
 # Para almacenar los resultados de cada simulación
 resultados_simulaciones = []
+winning_seeds = []
 
-for SEED in range(205):
+for SEED in range(0,100):
+    random.seed(SEED)
+    np.random.seed(SEED)
     for sim in range(NUM_SIMULACIONES):
         print(f"\n--- Simulación {sim + 1} ---")
         model = MansionModel(LUIGIS, FAKE_ALARMS, 
@@ -156,6 +163,7 @@ for SEED in range(205):
         print(f"Damage: {model.damage_counter}")
         print(f"Deaths: {model.losses}")
         print(f"Saved Victims: {model.rescued}")
+        print(f"Seed: {SEED}")
         if model.damage_counter >= 24:
             print("MANSION TAKEN OVER")
             print("GAME OVER")
@@ -163,6 +171,7 @@ for SEED in range(205):
             print("4 DEATHS")
             print("GAME OVER")
         elif model.rescued >= 7:
+            winning_seeds.append(SEED)
             print("VICTORY!!!!")
 
     # Mostrar un resumen de los resultados de todas las simulaciones
@@ -173,3 +182,5 @@ for SEED in range(205):
         print(f"  Damage: {resultado['damage']}")
         print(f"  Deaths: {resultado['total_deaths']}")
         print(f"  Saved Victims: {resultado['saved_victims']}")
+
+print(f"Semillas victoriosas: {winning_seeds}")
