@@ -248,7 +248,6 @@ class MansionModel(Model):
 
     def spread_boos(self):
         """Extiende la presencia de fantasmas únicamente dentro del área central del grid."""
-        print(f"Damage: {self.damage_counter}")
         # Definir el área central del grid
         central_area = [
             (x, y) for x in range(1, 9) for y in range(1, 7)
@@ -286,8 +285,6 @@ class MansionModel(Model):
                             if self.check_collision_walls_doors(target_pos, neighbor):
                                 self.register_damage_walls_doors(target_pos, neighbor)
                             else:
-                                self.grid_details[neighbor] = 2
-                                self.boo_zones.append(neighbor)
                                 if self.grid_details.get(neighbor) == 0:
                                     print(f"[INFO] Nuevo fuego extendido de {target_pos} a {neighbor}")
                                     self.log_event({
@@ -296,12 +293,14 @@ class MansionModel(Model):
                                         "to": neighbor,
                                         "step": self.step_count
                                     })
-                                if self.grid_details.get(neighbor) == 1:
+                                else:
                                     self.log_event({
                                     "type": "smoke_to_fire",
                                     "position": target_pos,
                                     "step": self.step_count
                                 })
+                                self.grid_details[neighbor] = 2
+                                self.boo_zones.append(neighbor)
                         elif self.grid_details.get(neighbor) == 2:
                             if self.check_collision_walls_doors(target_pos, neighbor):
                                 self.register_damage_walls_doors(target_pos, neighbor)

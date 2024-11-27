@@ -117,10 +117,10 @@ NUM_SIMULACIONES = 1
 resultados_simulaciones = []
 
 for sim in range(NUM_SIMULACIONES):
-    # SEED = 14
-    SEED = int(time.time()) + sim  # Usa el tiempo actual más el número de simulación para mayor aleatoriedad
-    random.seed(SEED)  # Establece la semilla para la generación de números aleatorios en Python
-    np.random.seed(SEED)  # Establece la semilla para NumPy (si se usa para aleatoriedad)
+    SEED = 1084
+    #SEED = int(time.time()) + sim  # Usa el tiempo actual más el número de simulación para mayor aleatoriedad
+    #random.seed(SEED)  # Establece la semilla para la generación de números aleatorios en Python
+    #np.random.seed(SEED)  # Establece la semilla para NumPy (si se usa para aleatoriedad)
     print(f"\n--- Simulación {sim + 1} ---")
     model = MansionModel(LUIGIS, FAKE_ALARMS, 
                          PORTRAITS, WALLS, DOORS, 
