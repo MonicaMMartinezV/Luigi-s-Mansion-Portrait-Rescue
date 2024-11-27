@@ -388,7 +388,7 @@ class MansionModel(Model):
                     self.grid_walls[target][1] = ''.join(target_counter)
                     print(f"[INFO] Daño registrado en {origin} y {target}")
                     self.log_event({
-                        "type": "damage_door",
+                        "type": "damage_wall",
                         "position": origin,
                         "target":target,
                         "step": self.step_count
@@ -524,6 +524,11 @@ class MansionModel(Model):
                     if not check_wall:
                         self.grid_details[smoke_cell] = 2  # Convertir el humo en fuego
                         print(f"[INFO] Humo {smoke_cell} se convierte en fuego.")
+                        self.log_event({
+                            "type": "smoke_to_fire",
+                            "position": smoke_cell,
+                            "step": self.step_count
+                        })
                         break
 
         # Procesar puntos con retratos afectados por el fuego

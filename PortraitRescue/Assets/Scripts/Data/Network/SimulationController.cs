@@ -131,10 +131,10 @@ public class SimulationController : MonoBehaviour
                 HandleDoorOpened(step.position, step.target);
                 break; 
             case "fire_extended":
-                //HandleFireExtended(detail.from, detail.to);
+                HandleFireAdded(step.to);
                 break;
-            case "damage_door":
-                //HandleDoorDamaged(detail.position, detail.target);
+            case "damage_wall":
+                HandleWallDamaged(step.position, step.target);
                 break;
             case "portrait_lost":
                 HandlePortraitLost(step.position);
@@ -275,6 +275,138 @@ public class SimulationController : MonoBehaviour
         {
             Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
         }
+    }
+    void HandleWallDamaged(List<int> position, List<int> target)
+    {
+        if (position == null || position.Count < 2)
+        {
+            Debug.LogError("Position inválida o nula en HandleWallDamaged.");
+            return;
+        }
+
+        if (target == null || target.Count < 2)
+        {
+            Debug.LogError("Target inválido o nulo en HandleWallDamaged.");
+            return;
+        }
+
+        int xPos = position[0];
+        int yPos = position[1];
+        int xTarget = target[0];
+        int yTarget = target[1];
+
+        string wallTypeFromPosition = "";
+        string wallTypeFromTarget = "";
+
+        // Determinar el tipo de pared en `position`
+        if (xPos == xTarget)  // Mismo X (Vertical)
+        {
+            if (yTarget < yPos)
+            {
+                wallTypeFromPosition = "UpperWall";
+                wallTypeFromTarget = "BottomWall";
+            }
+            else if (yTarget > yPos)
+            {
+                wallTypeFromPosition = "BottomWall";
+                wallTypeFromTarget = "UpperWall";
+            }
+        }
+        else if (yPos == yTarget)  // Mismo Y (Horizontal)
+        {
+            if (xTarget > xPos)
+            {
+                wallTypeFromPosition = "RightWall";
+                wallTypeFromTarget = "LeftWall";
+            }
+            else if (xTarget < xPos)
+            {
+                wallTypeFromPosition = "LeftWall";
+                wallTypeFromTarget = "RightWall";
+            }
+        }
+
+        Debug.Log($"Posición: ({xPos},{yPos}), Target: ({xTarget},{yTarget}), WallTypeFromPosition: {wallTypeFromPosition}, WallTypeFromTarget: {wallTypeFromTarget}");
+
+        // Cambiar color de la pared en `position`
+        GameObject floorPosition = GameObject.Find($"Floor ({xPos},{yPos})");
+        if (floorPosition != null)
+        {
+            Transform wallTransform = floorPosition.transform.Find(wallTypeFromPosition);
+            if (wallTransform != null)
+            {
+                Renderer renderer = wallTransform.GetComponent<Renderer>();
+                if (renderer != null)
+                {
+                    renderer.material.color = Color.red; // Cambia la pared a rojo
+                    Debug.Log($"Pared {wallTypeFromPosition} en Floor ({xPos},{yPos}) cambiada a rojo.");
+                }
+                else
+                {
+                    Debug.LogWarning($"No se encontró un Renderer en {wallTypeFromPosition} de Floor ({xPos},{yPos}).");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"No se encontró el {wallTypeFromPosition} dentro de Floor ({xPos},{yPos}).");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró Floor en la posición ({xPos},{yPos}).");
+        }
+
+        // Cambiar color de la pared en `target`
+        GameObject floorTarget = GameObject.Find($"Floor ({xTarget},{yTarget})");
+        if (floorTarget != null)
+        {
+            Transform wallTransform = floorTarget.transform.Find(wallTypeFromTarget);
+            if (wallTransform != null)
+            {
+                Renderer renderer = wallTransform.GetComponent<Renderer>();
+                if (renderer != null)
+                {
+                    renderer.material.color = Color.red; // Cambia la pared a rojo
+                    Debug.Log($"Pared {wallTypeFromTarget} en Floor ({xTarget},{yTarget}) cambiada a rojo.");
+                }
+                else
+                {
+                    Debug.LogWarning($"No se encontró un Renderer en {wallTypeFromTarget} de Floor ({xTarget},{yTarget}).");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"No se encontró el {wallTypeFromTarget} dentro de Floor ({xTarget},{yTarget}).");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
+        }
+
+        // Efecto de sacudida de cámara
+        StartCoroutine(CameraShake());
+    }
+
+    IEnumerator CameraShake(float duration = 0.2f, float magnitude = 0.1f)
+    {
+        Vector3 originalPosition = Camera.main.transform.localPosition;
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            float xOffset = Random.Range(-1f, 1f) * magnitude;
+            float yOffset = Random.Range(-1f, 1f) * magnitude;
+
+            Camera.main.transform.localPosition = originalPosition + new Vector3(xOffset, yOffset, 0);
+
+            elapsed += Time.deltaTime;
+
+            yield return null;
+        }
+
+        Camera.main.transform.localPosition = originalPosition;
     }
 
 
