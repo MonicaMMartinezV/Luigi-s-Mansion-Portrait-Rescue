@@ -28,6 +28,7 @@ class MansionModel(Model):
         self.casualties        = 0
         #self.saved_count      = 0
         self.simulation_status = "In progress"
+        self.simulation_end    = ""
         self.boo_zones         = [(row, col) for col, row in boo]
         self.wall_config       = walls
         self.mode              = mode
@@ -502,19 +503,25 @@ class MansionModel(Model):
                     break
         for point in list(self.portraits):
             if self.grid_details[point] == 2:
-                del self.portraits[point]
-                self.casualties += 1
-                self.log_event({
-                        "type": "portrait_lost",
-                        "position": point,
-                        "step": self.step_count
-                    })
-                break
+                 if point in self.portraits:  # Solo contar si hay un retrato
+                    del self.portraits[point]
+                    self.casualties += 1
+                    self.casualties += 1
+                    self.log_event({
+                            "type": "portrait_lost",
+                            "position": point,
+                            "step": self.step_count
+                        })
+                    break
 
     def update_simulation_status(self):
         """Actualiza el estado de la simulación."""
         if self.casualties >= 4 or self.damage_counter >= 24:
             self.simulation_status = "Defeat"
+            if self.casualties >=4:
+                self.simulation_end = "Defeat by dead victims"
+            if self.damage_counter >=24:
+                self.simulation_end = "Defeat by damage"
             return True
         elif self.rescued >= 7:
             self.simulation_status = "Victory"

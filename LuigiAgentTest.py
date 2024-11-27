@@ -240,12 +240,20 @@ class LuigiAgent(Agent):
                 self.action_points -= 1
                 continue
 
+            # Apagar fuego o humo antes de moverse
+            if self.handle_fire_around():
+                continue  # Después de apagar fuego, vuelve a comenzar el turno
+
             if self.carrying_portrait:
                 # Si lleva un retrato, moverse hacia la salida más cercana
                 valid_exits = [pos for pos in self.model.entrances if isinstance(pos, tuple) and len(pos) == 2]
                 if valid_exits:
                     nearest_exit = min(valid_exits, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} lleva retrato. Moviéndose hacia la salida más cercana: {nearest_exit}")
+
+                    # Apagar fuego o humo antes de moverse
+                    if self.handle_fire_around():
+                        continue  # Después de apagar fuego, vuelve a comenzar el turno
                     
                     # Verificar si hay puertas o paredes en el camino
                     if self.check_collision_walls(self.pos, nearest_exit):
@@ -311,6 +319,10 @@ class LuigiAgent(Agent):
                         # Encontrar el retrato más cercano usando Manhattan
                         nearest_portrait = min(portraits, key=lambda pos: self.heuristic(self.pos, pos))
                         print(f"[DEBUG] Agente {self.unique_id} buscando retrato. Moviéndose hacia el retrato más cercano: {nearest_portrait}")
+
+                        # Apagar fuego o humo antes de moverse
+                        if self.handle_fire_around():
+                            continue  # Después de apagar fuego, vuelve a comenzar el turno
                         
                         # Verificar si hay puertas o paredes en el camino
                         if self.check_collision_walls(self.pos, nearest_portrait):
@@ -353,6 +365,7 @@ class LuigiAgent(Agent):
 
     def firefighter_strategy(self):
         """Estrategia para agentes cuyo rol es apagar incendios."""
+        visited_positions = set()
         while self.action_points > 0:
             if DEVELOPMENT:
                 self.action_points -= 1
@@ -366,6 +379,15 @@ class LuigiAgent(Agent):
                 if fire_cells:
                     nearest_fire = min(fire_cells, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} buscando fuego. Moviéndose hacia el fuego más cercano: {nearest_fire}")
+
+                    if nearest_fire in visited_positions:
+                        print(f"[DEBUG] Agente {self.unique_id} está bloqueado intentando llegar a {nearest_fire}. Deteniendo intento.")
+                        break
+
+                    visited_positions.add(nearest_fire)
+
+                    if self.handle_fire_around():
+                        continue  # Después de apagar fuego/humo, vuelve a comenzar el turno
 
                     # Verificar si hay puertas o paredes en el camino
                     if self.check_collision_walls(self.pos, nearest_fire):
@@ -427,6 +449,27 @@ class LuigiAgent(Agent):
                     # Si no hay fuego, el bombero se detiene
                     print(f"[DEBUG] Agente {self.unique_id} no encuentra más fuego ni humo.")
                     break
+    
+    def handle_fire_around(self):
+        """Verifica si hay fuego o humo en las celdas vecinas y los apaga si es posible."""
+        neighbors = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
+        for neighbor in neighbors:
+            if neighbor in self.model.grid_details:
+                # Verificar primero si el agente tiene puntos suficientes
+                if self.model.grid_details[neighbor] == 2:  # Fuego
+                    if self.action_points >= 2:
+                        self.extinguish_fire(neighbor)
+                        return True  # Detenerse después de apagar fuego
+                    else:
+                        print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar fuego en {neighbor}. Puntos disponibles: {self.action_points}")
+                elif self.model.grid_details[neighbor] == 1:  # Humo
+                    reducing = True
+                    if self.action_points >= 1:
+                        self.extinguish_smoke(neighbor,reducing)
+                        return True  # Detenerse después de apagar humo
+                    else:
+                        print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar humo en {neighbor}. Puntos disponibles: {self.action_points}")
+        return False  # No se encontró fuego ni humo en las celdas vecinas
 
     def update_grid_walls(self, origin, target, direction_sn, direction_ns):
         origin_wall = list(self.model.grid_walls[origin][0])
