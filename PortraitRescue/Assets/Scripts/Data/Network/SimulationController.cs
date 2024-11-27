@@ -99,7 +99,7 @@ public class SimulationController : MonoBehaviour
                 HandleSmokeAdded(step.position);
                 break;
             case "found_portrait":
-                HandlePortraitFound(step);
+                HandlePortraitFound(step.at,step.agent,step.portrait_type);
                 break;
             case "fire_extinguished":
                 HandleFireExtinguished(step.at);
@@ -847,12 +847,12 @@ public class SimulationController : MonoBehaviour
         }
     }
 
-    void HandlePortraitFound(Step step)
+    void HandlePortraitFound(List<int> at, int agentID, string portrait_type)
     {
-        int agentId = step.agent; // ID del agente
-        int x = step.at[0];       // Coordenada X
-        int y = step.at[1];       // Coordenada Y
-        string type = step.portrait_type; // Tipo de retrato
+        int agentId = agentID; // ID del agente
+        int x = at[0];       // Coordenada X
+        int y = at[1];       // Coordenada Y
+        string type = portrait_type; // Tipo de retrato
 
         // Verificar si el agente existe
         if (!agents.TryGetValue(agentId, out GameObject agent))
