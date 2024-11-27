@@ -40,6 +40,7 @@
 * Added distinction between extinguishing smoke and reducing fire to smoke (26/11/2024)
 * Added door opening animation in Unity (26/11/2024)
 * Added destruction of portraits when lost in an explosion (26/11/2024)
+* Added dynamic counters to update TextMesh counters in Unity (27/11/2024)
 
 ### Changed
 

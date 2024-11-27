@@ -572,6 +572,12 @@ MonoBehaviour:
   - {fileID: 2100000, guid: d0248d8b262c8ad4680c44d194ef4fb7, type: 2}
   - {fileID: 2100000, guid: 2a223b9e25bb70c49aa34bbd26453919, type: 2}
   - {fileID: 2100000, guid: 95e8338f19d43da4abbf13ce9c7cb16e, type: 2}
+  casualtiesCounter: {fileID: 1134501431}
+  damageCounter: {fileID: 1303314084}
+  savedCounter: {fileID: 1675863539}
+  casualties: 0
+  damage: 0
+  saved: 0
   moveSpeed: 1000
   simulationApiUrl: http://127.0.0.1:5000/run_simulation
 --- !u!1 &394663808
@@ -1649,7 +1655,7 @@ GameObject:
   - component: {fileID: 1134501432}
   - component: {fileID: 1134501431}
   m_Layer: 5
-  m_Name: CasualtieText
+  m_Name: CasualtiesText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2553,7 +2559,7 @@ GameObject:
   - component: {fileID: 1675863540}
   - component: {fileID: 1675863539}
   m_Layer: 5
-  m_Name: DeathText
+  m_Name: SavedText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

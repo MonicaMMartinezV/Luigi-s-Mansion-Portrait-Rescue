@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
 using System.IO;
+using TMPro;
 
 public class SimulationController : MonoBehaviour
 {
@@ -14,6 +15,14 @@ public class SimulationController : MonoBehaviour
     public GameObject portraitPrefab;
     public Material falseMaterial;
     public Material[] victimMaterials;
+
+    public TextMeshProUGUI casualtiesCounter;
+    public TextMeshProUGUI damageCounter;
+    public TextMeshProUGUI savedCounter;
+
+    public int casualties = 0;
+    public int damage = 0;
+    public int saved = 0;
 
     public float moveSpeed = 5f;
 
@@ -265,6 +274,13 @@ public class SimulationController : MonoBehaviour
             {
                 Debug.Log($"Destruyendo {wallTypeFromTarget} en Floor ({xTarget},{yTarget})");
                 Destroy(wallTransform.gameObject);
+
+                // Actualizar contador
+                damage +=2;
+                if (damageCounter != null)
+                {
+                    damageCounter.text = $"Damage: {damage}";
+                }
             }
             else
             {
@@ -276,6 +292,7 @@ public class SimulationController : MonoBehaviour
             Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
         }
     }
+
     void HandleWallDamaged(List<int> position, List<int> target)
     {
         if (position == null || position.Count < 2)
@@ -382,6 +399,13 @@ public class SimulationController : MonoBehaviour
         else
         {
             Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
+        }
+
+        // Actualizar contador
+        damage++;
+        if (damageCounter != null)
+        {
+            damageCounter.text = $"Damage: {damage}";
         }
 
         // Efecto de sacudida de cámara
@@ -528,6 +552,13 @@ public class SimulationController : MonoBehaviour
             Debug.LogWarning($"No se encontró el retrato en la posición ({x},{y}).");
             return;
         }
+
+        // Actualizar contador
+        casualties++;
+        if (casualtiesCounter != null)
+        {
+            casualtiesCounter.text = $"Casualties: {casualties}";
+        }
         
         // Destruir el retrato en "position"
         Destroy(mainPortrait, 2f);
@@ -640,7 +671,6 @@ public class SimulationController : MonoBehaviour
         // Asegurar la posición final
         door.transform.position = targetPosition;
     }
-
 
     void HandleSmokeAdded(List<int> position)
     {
@@ -890,7 +920,7 @@ public class SimulationController : MonoBehaviour
             return;
         }
 
-        if (type == "Victim")
+        if (type == "victim")
         {
             // Cambiar material y asignar al agente
             Material randomMaterial = victimMaterials[Random.Range(0, victimMaterials.Length)];
@@ -948,6 +978,14 @@ public class SimulationController : MonoBehaviour
 
         if (portrait != null)
         {
+            
+            // Actualizar contador
+            saved++;
+            if (savedCounter != null)
+            {
+                savedCounter.text = $"Saved: {saved}";
+            }
+
             Debug.Log($"Retrato rescatado por {agent.name}. Destruyendo retrato: {portrait.name}");
             Destroy(portrait.gameObject); // Eliminar el retrato
         }
