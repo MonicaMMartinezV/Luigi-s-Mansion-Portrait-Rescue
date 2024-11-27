@@ -542,7 +542,7 @@ class MansionModel(Model):
                         "step": self.step_count
                     })
                     break
-                
+
     def update_simulation_status(self):
         """Actualiza el estado de la simulación."""
         if self.casualties >= 4 or self.damage_counter >= 24:
