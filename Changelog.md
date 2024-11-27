@@ -39,6 +39,7 @@
 * Added log messages to agent actions for Unity to interpret (26/11/2024)
 * Added distinction between extinguishing smoke and reducing fire to smoke (26/11/2024)
 * Added door opening animation in Unity (26/11/2024)
+* Added destruction of portraits when lost in an explosion (26/11/2024)
 
 ### Changed
 

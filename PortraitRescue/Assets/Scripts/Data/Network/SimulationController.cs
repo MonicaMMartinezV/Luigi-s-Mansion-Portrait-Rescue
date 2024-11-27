@@ -140,6 +140,15 @@ public class SimulationController : MonoBehaviour
                 Debug.Log($"Detalles recibidos para OpenDoor - Position: {string.Join(", ", detail.position ?? new List<int>())}, Target: {string.Join(", ", detail.target ?? new List<int>())}");
                 HandleDoorOpened(detail.position, detail.target);
                 break; 
+            case "fire_extended":
+                //HandleFireExtended(detail.from, detail.to);
+                break;
+            case "damage_door":
+                //HandleDoorDamaged(detail.position, detail.target);
+                break;
+            case "portrait_lost":
+                HandlePortraitLost(detail.position);
+                break;
             default:
                 Debug.LogWarning($"Evento no manejado: {detail.type}");
                 break;
@@ -376,6 +385,31 @@ public class SimulationController : MonoBehaviour
         {
             Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
         }
+    }
+
+    void HandlePortraitLost(List<int> position)
+    {
+        
+        if (position == null || position.Count < 2)
+        {
+            Debug.LogError("Position inválida o nula en HandlePortraitLost.");
+            return;
+        }
+        
+        int x = position[0];
+        int y = position[1];
+
+        // Buscar el retrato en la escena
+        GameObject mainPortrait = GameObject.Find($"Portrait ({x},{y})");
+
+        if (mainPortrait == null)
+        {
+            Debug.LogWarning($"No se encontró el retrato en la posición ({x},{y}).");
+            return;
+        }
+        
+        // Destruir el retrato en "position"
+        Destroy(mainPortrait, 2f);
     }
 
     void HandleAgentMove(Detail detail)

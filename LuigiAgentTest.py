@@ -266,6 +266,7 @@ class LuigiAgent(Agent):
                         if self.action_points >= 1:  # Verificar si tiene puntos para abrir la puerta
                             print(f"[DEBUG] Agente {self.unique_id} encuentra una puerta cerrada entre {self.pos} y {nearest_exit}. Abriendo puerta.")
                             self.open_door(self.pos, nearest_exit)
+                            print("Logeando abrir puerta")
                             self.model.log_event({
                                 "type": "open_door",
                                 "agent": self.unique_id,
@@ -328,6 +329,7 @@ class LuigiAgent(Agent):
                             if self.action_points >= 1:  # Verificar si tiene puntos para abrir la puerta
                                 print(f"[DEBUG] Agente {self.unique_id} encuentra una puerta cerrada entre {self.pos} y {nearest_portrait}. Abriendo puerta.")
                                 self.open_door(self.pos, nearest_portrait)
+                                print("Logeando abrir puerta")
                                 self.model.log_event({
                                     "type": "open_door",
                                     "agent": self.unique_id,
@@ -448,14 +450,6 @@ class LuigiAgent(Agent):
     def step(self):
         """Función que ejecuta el paso de un agente."""
         print(f"\n[DEBUG] Agente {self.unique_id} ({self.role}) inicia su turno en posición {self.pos}. Energía inicial: {self.action_points}.")
-        
-        self.model.log_event({
-            "type": "agent_turn_start",
-            "agent": self.unique_id,
-            "role": self.role,
-            "position": self.pos,
-            "action_points": self.action_points
-        })
 
         if self.role == "rescuer":
             self.rescuer_strategy()  # Ejecutar estrategia de rescate
@@ -463,14 +457,6 @@ class LuigiAgent(Agent):
             self.firefighter_strategy()  # Ejecutar estrategia de apagar incendios
 
         print(f"[DEBUG] Agente {self.unique_id} ({self.role}) termina su turno en posición {self.pos}. Energía restante: {self.action_points}.")
-        
-        self.model.log_event({
-            "type": "agent_turn_end",
-            "agent": self.unique_id,
-            "role": self.role,
-            "position": self.pos,
-            "remaining_action_points": self.action_points
-        })
 
         # Esparcir retratos (si es necesario) y fuego
         self.model.add_portraits()
