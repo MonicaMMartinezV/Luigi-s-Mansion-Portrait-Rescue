@@ -24,7 +24,7 @@ import time
 import heapq
 from queue import Queue
 
-DEVELOPMENT_MODE = False
+DEVELOPMENT_MODE = True
 WAIT_TIME = 0.01
 
 def procesar_txt(file_path):
@@ -111,18 +111,23 @@ LUIGIS = 6
 WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt(file_path)
 
 # Definir el número de simulaciones que quieres ejecutar
-NUM_SIMULACIONES = 10000
+NUM_SIMULACIONES = 1
 
 # Para almacenar los resultados de cada simulación
 resultados_simulaciones = []
 count_victory = 0
 
 for sim in range(NUM_SIMULACIONES):
-    #SEED = 1084
-    SEED = int(time.time()) + sim  # Usa el tiempo actual más el número de simulación para mayor aleatoriedad
+    if DEVELOPMENT_MODE:
+        SEED = 31
+    else:
+        SEED = int(time.time()) + sim  # Usa el tiempo actual más el número de simulación para mayor aleatoriedad
+    
     random.seed(SEED)  # Establece la semilla para la generación de números aleatorios en Python
     np.random.seed(SEED)  # Establece la semilla para NumPy (si se usa para aleatoriedad)
+    
     print(f"\n--- Simulación {sim + 1} ---")
+    
     model = MansionModel(LUIGIS, FAKE_ALARMS, 
                          PORTRAITS, WALLS, DOORS, 
                          GHOSTS, ENTRANCES, DEVELOPMENT_MODE, SEED)

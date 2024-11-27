@@ -110,13 +110,15 @@ LUIGIS = 6
 WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt(file_path)
 
 # Definir el número de simulaciones que quieres ejecutar
-NUM_SIMULACIONES = 1
+NUM_SIMULACIONES = 2
 
 # Para almacenar los resultados de cada simulación
 resultados_simulaciones = []
-max_saved_victims = 0
+winning_seeds = []
 
-for SEED in range(1087,3000):
+for SEED in range(0,100):
+    random.seed(SEED)
+    np.random.seed(SEED)
     for sim in range(NUM_SIMULACIONES):
         print(f"\n--- Simulación {sim + 1} ---")
         model = MansionModel(LUIGIS, FAKE_ALARMS, 
@@ -154,9 +156,6 @@ for SEED in range(1087,3000):
         }
         resultados_simulaciones.append(resultado)
 
-        if max_saved_victims < model.rescued:
-            max_saved_victims = model.rescued
-
         # Mostrar los resultados de la simulación actual
         print(f"Simulación {sim + 1} Finalizada:")
         print(f"Number of steps: {steps}")
@@ -172,6 +171,7 @@ for SEED in range(1087,3000):
             print("4 DEATHS")
             print("GAME OVER")
         elif model.rescued >= 7:
+            winning_seeds.append(SEED)
             print("VICTORY!!!!")
 
     # Mostrar un resumen de los resultados de todas las simulaciones
@@ -182,3 +182,5 @@ for SEED in range(1087,3000):
         print(f"  Damage: {resultado['damage']}")
         print(f"  Deaths: {resultado['total_deaths']}")
         print(f"  Saved Victims: {resultado['saved_victims']}")
+
+print(f"Semillas victoriosas: {winning_seeds}")

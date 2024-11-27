@@ -16,9 +16,8 @@ class MansionModel(Model):
         # Inicializar la clase base Model sin argumentos adicionales
         
         super().__init__()
-
-        print(f"Seed: {seed}")
-        random.seed(seed)
+        
+        print(f"Corriendo con semilla: {seed}")
 
         # Variables iniciales del modelo
         self.step_count        = 0
@@ -165,7 +164,7 @@ class MansionModel(Model):
 
             # Asignar un agente "rescuer" en esta posición
             role = "rescuer"
-            agent = LuigiAgent(idx, self, role)
+            agent = LuigiAgent(idx, self, role, position)
             agent.unique_id = idx
             self.grid.place_agent(agent, position)
             self.schedule.add(agent)
@@ -179,7 +178,7 @@ class MansionModel(Model):
             # Asignar un agente "firefighter" en la siguiente posición, separada
             next_position = adjusted_positions[(i + 1) % len(adjusted_positions)]  # Usar la siguiente posición
             role = "firefighter"
-            agent = LuigiAgent(idx, self, role)
+            agent = LuigiAgent(idx, self, role, next_position)
             agent.unique_id = idx
             self.grid.place_agent(agent, next_position)
             self.schedule.add(agent)
@@ -192,7 +191,7 @@ class MansionModel(Model):
             for _ in range(total_agents):
                 position = adjusted_positions[idx % len(adjusted_positions)]
                 role = next(agent_roles)
-                agent = LuigiAgent(idx, self, role)
+                agent = LuigiAgent(idx, self, role, position)
                 agent.unique_id = idx
                 self.grid.place_agent(agent, position)
                 self.schedule.add(agent)
@@ -483,11 +482,6 @@ class MansionModel(Model):
                     pass
         
         return
-
-
-    def trigger_wave(self, position):
-        """Desencadena una oleada de incendios."""
-        pass
     
     def direction(self, start, next):
         """Calcula la dirección de movimiento entre dos posiciones."""
@@ -525,8 +519,11 @@ class MansionModel(Model):
             neighbors = self.grid.get_neighborhood(smoke_cell, moore=False, include_center=False)
             for neighbor in neighbors:
                 if self.grid_details[neighbor] == 2:  # Si hay fuego en un vecino
-                    self.grid_details[smoke_cell] = 2  # Convertir el humo en fuego
-                    break
+                    check_wall = self.check_collision_walls(smoke_cell, neighbor)
+                    if not check_wall:
+                        self.grid_details[smoke_cell] = 2  # Convertir el humo en fuego
+                        print(f"[INFO] Humo {smoke_cell} se convierte en fuego.")
+                        break
 
         # Procesar puntos con retratos afectados por el fuego
         for point in list(self.portraits):
@@ -542,6 +539,37 @@ class MansionModel(Model):
                         "step": self.step_count
                     })
                     break
+        
+        for cell in self.grid.coord_iter():
+            if len(cell[0]) == 0:
+                continue
+
+            if self.grid_details[cell[1]] == 2:
+                agents = cell[0]
+                for agent in agents:
+                    agent.reset()
+
+            #agents_in_cell = list(cell_content)  # Agentes en la celda actual
+            #print(f"Agentes en la celda ({x}, {y}): {agents_in_cell}")
+
+    def check_collision_walls(self, start, next):
+        """Verifica si hay una colisión entre dos posiciones."""
+        direction = self.direction(start, next)
+        combined_possn = start + next
+        combined_posns = next + start
+
+        # Verifica si la posición 'start' está en el grid_walls
+        if start in self.grid_walls:
+            wall_blocked = direction is not None and self.grid_walls[start][0][direction] == '1'
+        else:
+            wall_blocked = False  # No hay colisión si la posición no está en el grid
+
+        # Comprueba si la posición combinada está en las salidas
+        if (combined_possn in self.exit_positions or 
+            combined_posns in self.exit_positions):
+            wall_blocked = False  # No bloquear si está en una posición de salida
+        
+        return wall_blocked
 
     def update_simulation_status(self):
         """Actualiza el estado de la simulación."""
@@ -578,6 +606,7 @@ class MansionModel(Model):
         # Iterar sobre los agentes según su ID
         for agent in sorted(self.schedule.agents, key=lambda a: a.unique_id):
             agent.step()
+            self.process_flashover()
 
         # Mostrar la energía restante de todos los agentes al final del turno
         print("\n[DEBUG] Energía de los agentes al final del turno:")
@@ -585,5 +614,5 @@ class MansionModel(Model):
             print(f"  - Agente {agent.unique_id} ({agent.role}): {agent.action_points} de energía.")
         
         # Realizar procesos adicionales del modelo
-        self.process_flashover()
+        
         self.update_simulation_status()

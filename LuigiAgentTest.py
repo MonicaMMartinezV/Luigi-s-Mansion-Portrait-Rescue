@@ -9,7 +9,7 @@ DEVELOPMENT = False
 class LuigiAgent(Agent):
     """Agente que simula a Luigi en el modelo de rescate y bombero."""
 
-    def __init__(self, unique_id, model, role):
+    def __init__(self, unique_id, model, role, position):
         super().__init__(unique_id, model)
         self.role              = role  # rol: 'rescuer' o 'firefighter'
         self.pos               = None  # Posición del agente en el grid
@@ -19,6 +19,19 @@ class LuigiAgent(Agent):
         self.action_points     = 4  # Puntos de acción para cada turno
         self.carrying_portrait = False  # Indica si el agente lleva un retrato (víctima)
         self.in_central_grid   = False  # Indica si el agente se encuentra dentro del grid central
+        self.start_position    = position
+
+    def reset(self):
+        """Restaura el agente a su estado inicial."""
+        self.carrying_portrait = False
+        self.in_central_grid = False
+        print(f"[DEBUG] Agente {self.unique_id} ha muerto.")
+
+        # Si tiene una posición inicial definida, mover al agente allí
+        if self.start_position:
+            self.model.grid.move_agent(self, self.start_position)
+            self.pos = self.start_position
+            print(f"[DEBUG] Agente {self.unique_id} movido a su posición inicial {self.start_position}.")
 
     def heuristic(self, cell, goal):
         """Calcula la distancia Manhattan entre una celda y un objetivo."""
@@ -118,13 +131,13 @@ class LuigiAgent(Agent):
             return True  # El agente ya está en la celda objetivo
 
         path = self.a_star(self.model.grid_details, self.pos, [target])
-        print(f"Agente {self.unique_id} tiene el camino: {path}")
+        print(f"[DEBUG] Agente {self.unique_id} tiene el camino: {path}")
         if not path:
-            print(f"Agente {self.unique_id} no puede alcanzar el objetivo desde {self.pos}.")
+            print(f"[DEBUG] Agente {self.unique_id} no puede alcanzar el objetivo desde {self.pos}.")
             return False  # No se encontró un camino
 
         next_step = path[0]
-        print(f"Agente {self.unique_id} se mueve de {self.pos} a {next_step}.")
+        print(f"[DEBUG] Agente {self.unique_id} se mueve de {self.pos} a {next_step}.")
         self.model.log_event({
             "type": "agent_move",
             "agent": self.unique_id,
@@ -171,7 +184,7 @@ class LuigiAgent(Agent):
     def extinguish_fire(self, position):
         """Extinguir fuego en la posición dada."""
         if self.action_points >= 2:
-            print(f"[DEBUG] Agente {self.unique_id} apagando fuego en {position}.")
+            print(f"[DEBUG] Agente: {self.unique_id} fuego apagado en {position}.")
             self.model.grid_details[position] = 0  # Actualizar la celda a estado vacío
             self.action_points -= 2  # Reducir puntos de acción
             self.action_history.append(f"Fire extinguished at: {position}") 
@@ -186,7 +199,7 @@ class LuigiAgent(Agent):
     def extinguish_smoke(self, position, reducing):
         """Extinguir humo en la posición dada."""
         if self.action_points >= 1:
-            print(f"[DEBUG] Agente {self.unique_id} eliminando humo en {position}.")
+            print(f"[DEBUG] Agente {self.unique_id} eliminó el humo en {position}.")
             self.model.grid_details[position] -= 1   # Actualizar la celda a estado vacío
             self.action_points -= 1  # Reducir puntos de acción
             if not reducing:
@@ -380,11 +393,8 @@ class LuigiAgent(Agent):
                     nearest_fire = min(fire_cells, key=lambda pos: self.heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} buscando fuego. Moviéndose hacia el fuego más cercano: {nearest_fire}")
 
-                    if nearest_fire in visited_positions:
-                        print(f"[DEBUG] Agente {self.unique_id} está bloqueado intentando llegar a {nearest_fire}. Deteniendo intento.")
-                        break
-
-                    visited_positions.add(nearest_fire)
+                    if nearest_fire not in visited_positions:
+                        visited_positions.add(nearest_fire)
 
                     if self.handle_fire_around():
                         continue  # Después de apagar fuego/humo, vuelve a comenzar el turno
@@ -458,15 +468,21 @@ class LuigiAgent(Agent):
                 # Verificar primero si el agente tiene puntos suficientes
                 if self.model.grid_details[neighbor] == 2:  # Fuego
                     if self.action_points >= 2:
-                        self.extinguish_fire(neighbor)
-                        return True  # Detenerse después de apagar fuego
+                        if not self.check_collision_walls(self.pos, neighbor):
+                            self.extinguish_fire(neighbor)
+                            return True  # Detenerse después de apagar fuego
+                        else:
+                            self.break_wall(self.pos, neighbor)
                     else:
                         print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar fuego en {neighbor}. Puntos disponibles: {self.action_points}")
                 elif self.model.grid_details[neighbor] == 1:  # Humo
                     reducing = True
                     if self.action_points >= 1:
-                        self.extinguish_smoke(neighbor,reducing)
-                        return True  # Detenerse después de apagar humo
+                        if not self.check_collision_walls(self.pos, neighbor):
+                            self.extinguish_smoke(neighbor,reducing)
+                            return True  # Detenerse después de apagar humo
+                        else:
+                            print(f"[DEBUG] Agente {self.unique_id} no puede romper paredes para apagar humo en {neighbor}.")
                     else:
                         print(f"[DEBUG] Agente {self.unique_id} no tiene suficientes puntos para apagar humo en {neighbor}. Puntos disponibles: {self.action_points}")
         return False  # No se encontró fuego ni humo en las celdas vecinas
@@ -489,6 +505,7 @@ class LuigiAgent(Agent):
             self.action_history.append(f"break wall:{start}-{next}")
             self.action_points -= 2
             self.model.damage_counter +=1
+            print(f"[DEBUG] Agente {self.unique_id} rompió la pared {next}.")
 
     def open_door(self,coord1, coord2):
         if coord1 in self.model.exit_positions and coord2 in self.model.exit_positions:
