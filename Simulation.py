@@ -3,9 +3,14 @@ from collections import OrderedDict
 from MansionModel import MansionModel  # Importa tu modelo y agentes
 import random
 
+# Librerías de manipulación y análisis de datos
+import numpy as np  # Proporciona funciones para manejo de matrices y álgebra lineal, común en análisis de datos
+import pandas as pd  # Ofrece estructuras de datos como DataFrames, útiles para manipular grandes cantidades de datos
+import time  # Proporciona funciones para trabajar con fechas y horas
+
 app = Flask(__name__)
 
-SEED = 200
+SEED = 31
 LUIGIS = 6
 DEVELOPMENT_MODE = True
 FILE_PATH = './final.txt'
@@ -146,59 +151,55 @@ def get_board():
 
 @app.route('/run_simulation', methods=['GET'])
 def run_simulation():
-    # Configurar modelo
-    random.seed(SEED)
-    WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt_sim(FILE_PATH)
+    # Número de simulaciones a ejecutar
+    NUM_SIMULACIONES = 1
+    count_victory = 0
 
-    model = MansionModel(LUIGIS, FAKE_ALARMS, 
-                         PORTRAITS, WALLS, DOORS, 
-                         GHOSTS, ENTRANCES, DEVELOPMENT_MODE, SEED)
+    # Almacenar resultados
+    resultados_simulaciones = []
 
-    # Registrar agentes iniciales
-    agents = [
-        {
-            "id": agent.unique_id,
-            "role": agent.role,
-            "initial_position": agent.pos
+    for sim in range(NUM_SIMULACIONES):
+        # Configurar la semilla
+        if DEVELOPMENT_MODE:
+            SEED = 31
+        else:
+            SEED = int(time.time()) + sim
+        
+        random.seed(SEED)
+        np.random.seed(SEED)
+
+        # Procesar el archivo y configurar el modelo
+        WALLS, FAKE_ALARMS, VICTIMS, FIRES, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt_sim(FILE_PATH)
+        model = MansionModel(
+            LUIGIS, FAKE_ALARMS, 
+            VICTIMS, WALLS, DOORS, 
+            FIRES, ENTRANCES, DEVELOPMENT_MODE, SEED
+        )
+
+        # Registrar agentes iniciales
+        agents = [
+            {
+                "id": agent.unique_id,
+                "role": agent.role,
+                "initial_position": agent.pos
+            }
+            for agent in model.schedule.agents
+        ]
+
+        # Simulación paso a paso
+        while model.step_count <= 1000:
+            model.step()
+
+            # Verificar el estado de la simulación
+            if model.update_simulation_status():
+                break
+
+        # Registrar resultados
+        response = {
+            "agents": agents,
+            "steps": model.model_events  # Enviar eventos en orden registrado
         }
-        for agent in model.schedule.agents
-    ]
 
-    # Inicializar eventos globales
-    global_events = set()
-
-    # Simular turnos
-    steps = []
-    while not model.update_simulation_status():
-        turn_data = {"turn": model.step_count, "details": []}
-        seen_events = set()  # Para evitar duplicados dentro del turno
-
-        # Procesar turnos de agentes
-        for agent in model.schedule.agents:
-            agent.step()  # Los eventos se registran dinámicamente aquí
-
-        # Capturar y agregar eventos únicos del turno
-        for event in model.model_events:
-            event_tuple = tuple(sorted(event.items()))  # Ordenar para evitar duplicados por orden de claves
-            if event_tuple not in global_events:
-                global_events.add(event_tuple)  # Agregar solo si es nuevo
-                if event_tuple not in seen_events:  # Asegurar no repetir dentro del turno
-                    seen_events.add(event_tuple)
-                    turn_data["details"].append(event)  # Agregar evento único al turno
-
-        # Registrar el turno completo si hay eventos nuevos
-        if turn_data["details"]:
-            steps.append(turn_data)
-
-        # Ejecutar el paso del modelo
-        model.step()
-
-    # Respuesta completa
-    response = {
-        "agents": agents,
-        "steps": steps,
-        "unique_events": [dict(e) for e in global_events]  # Convertir a lista de diccionarios
-    }
     return jsonify(response)
 
 if __name__ == '__main__':

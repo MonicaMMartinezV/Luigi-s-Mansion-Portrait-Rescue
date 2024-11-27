@@ -77,68 +77,58 @@ public class SimulationController : MonoBehaviour
 
         foreach (var step in simulationData.steps)
         {
-            Debug.Log($"Turno: {step.turn}, Total de detalles: {step.details.Count}");
+            Debug.Log($"Procesando evento: {step.type}");
 
-            foreach (var detail in step.details)
-            {
-                totalDetailsProcessed++;
-                Debug.Log($"Procesando detalle #{totalDetailsProcessed}: {detail.type}");
+            HandleDetail(step);
+            totalDetailsProcessed++;
 
-                HandleDetail(detail);
-                yield return new WaitForSeconds(1f);
-            }
+            yield return new WaitForSeconds(1f); // Pausa de 1 segundo entre eventos
         }
 
-        Debug.Log($"Simulación completada. Total de detalles procesados: {totalDetailsProcessed}");
+        Debug.Log($"Simulación completada. Total de eventos procesados: {totalDetailsProcessed}");
     }
 
-
-
-    void HandleDetail(Detail detail)
+    void HandleDetail(Step step)
     {
-        Debug.Log($"Detalle actual: Tipo = {detail.type}");
-
-        switch (detail.type)
+        switch (step.type)
         {
             case "agent_move":
-                HandleAgentMove(detail);
+                HandleAgentMove(step.agent,step.from,step.to);
                 break;
             case "smoke_added":
-                HandleSmokeAdded(detail.position);
+                HandleSmokeAdded(step.position);
                 break;
             case "found_portrait":
-                HandlePortraitFound(detail);
+                HandlePortraitFound(step);
                 break;
             case "fire_extinguished":
-                HandleFireExtinguished(detail.position);
+                HandleFireExtinguished(step.at);
                 break;
             case "portrait_added":
-                HandlePortraitAdded(detail.position);
+                HandlePortraitAdded(step.position);
                 break;
             case "fire_removed_to_portrait":
-                HandleFireExtinguished(detail.position);
+                HandleFireExtinguished(step.position);
                 break;
             case "rescued_portrait":
-                HandlePortraitRescued(detail);
+                HandlePortraitRescued(step);
                 break;
             case "wall_destroyed":
-                Debug.Log($"Detalles recibidos para WallDestroyed - Position: {string.Join(", ", detail.position ?? new List<int>())}, Target: {string.Join(", ", detail.target ?? new List<int>())}");
-                HandleWallDestroyed(detail.position,detail.target);
+                HandleWallDestroyed(step.position,step.target);
                 break;
             case "fire_to_smoke":
-                HandleFireExtinguished(detail.position);
-                HandleSmokeAdded(detail.position);
+                HandleFireExtinguished(step.at);
+                HandleSmokeAdded(step.position);
                 break;
             case "smoke_extinguished":
-                HandleSmokeExtinguished(detail.position);
+                HandleSmokeExtinguished(step.position);
                 break;
             case "smoke_to_fire":
-                HandleSmokeExtinguished(detail.position);
-                HandleFireAdded(detail.position);
+                HandleSmokeExtinguished(step.position);
+                HandleFireAdded(step.position);
                 break; 
             case "open_door":
-                Debug.Log($"Detalles recibidos para OpenDoor - Position: {string.Join(", ", detail.position ?? new List<int>())}, Target: {string.Join(", ", detail.target ?? new List<int>())}");
-                HandleDoorOpened(detail.position, detail.target);
+                HandleDoorOpened(step.position, step.target);
                 break; 
             case "fire_extended":
                 //HandleFireExtended(detail.from, detail.to);
@@ -147,14 +137,13 @@ public class SimulationController : MonoBehaviour
                 //HandleDoorDamaged(detail.position, detail.target);
                 break;
             case "portrait_lost":
-                HandlePortraitLost(detail.position);
+                HandlePortraitLost(step.position);
                 break;
             default:
-                Debug.LogWarning($"Evento no manejado: {detail.type}");
+                Debug.LogWarning($"Evento no manejado: {step.type}");
                 break;
         }
     }
-
 
     IEnumerator MoveAgent(GameObject agent, Vector3 fromPosition, Vector3 toPosition)
     {
@@ -412,12 +401,9 @@ public class SimulationController : MonoBehaviour
         Destroy(mainPortrait, 2f);
     }
 
-    void HandleAgentMove(Detail detail)
+    void HandleAgentMove(int agentId, List<int> from, List<int> to)
     {
-        // Formar el nombre del agente usando el 'id' del agente
-        string agentName = $"Agent_{detail.agent}";
-
-        // Buscar el agente en la escena por su nombre
+        string agentName = $"Agent_{agentId}";
         GameObject agent = GameObject.Find(agentName);
 
         if (agent == null)
@@ -426,13 +412,12 @@ public class SimulationController : MonoBehaviour
             return;
         }
 
-        // Obtener las coordenadas de 'from' y 'to'
-        Vector3 fromPosition = GetFloorPosition(detail.from[0], detail.from[1]);
-        Vector3 toPosition = GetFloorPosition(detail.to[0], detail.to[1]);
+        Vector3 fromPosition = GetFloorPosition(from[0], from[1]);
+        Vector3 toPosition = GetFloorPosition(to[0], to[1]);
 
-        // Mover el agente de 'from' a 'to'
         StartCoroutine(MoveAgent(agent, fromPosition, toPosition));
     }
+
 
     IEnumerator AnimateSmokeAppearance(GameObject smoke, float duration)
     {
@@ -730,12 +715,12 @@ public class SimulationController : MonoBehaviour
         }
     }
 
-    void HandlePortraitFound(Detail detail)
+    void HandlePortraitFound(Step step)
     {
-        int agentId = detail.agent; // ID del agente
-        int x = detail.at[0];       // Coordenada X
-        int y = detail.at[1];       // Coordenada Y
-        string type = detail.portrait_type; // Tipo de retrato
+        int agentId = step.agent; // ID del agente
+        int x = step.at[0];       // Coordenada X
+        int y = step.at[1];       // Coordenada Y
+        string type = step.portrait_type; // Tipo de retrato
 
         // Verificar si el agente existe
         if (!agents.TryGetValue(agentId, out GameObject agent))
@@ -803,10 +788,10 @@ public class SimulationController : MonoBehaviour
         }
     }
 
-    void HandlePortraitRescued(Detail detail)
+    void HandlePortraitRescued(Step step)
     {
         // Construir el nombre del agente a partir del ID
-        string agentName = $"Agent_{detail.agent}";
+        string agentName = $"Agent_{step.agent}";
 
         // Buscar al agente en la escena por su nombre
         GameObject agent = GameObject.Find(agentName);
@@ -866,20 +851,14 @@ public class Agent
 [System.Serializable]
 public class Step
 {
-    public int turn;
-    public List<Detail> details;
+    public int agent;
+    public List<int> from;
+    public List<int> to;
+    public List<int> at;
+    public List<int> target;
+    public List<int> position;
+    public int step;
+    public string type;
+    public string portrait_type;
 }
 
-[System.Serializable]
-public class Detail
-{
-    public string type;
-    public int id;
-    public int agent;
-    public List<int> from = new List<int>();
-    public List<int> to = new List<int>();
-    public List<int> position = new List<int>();
-    public List<int> target = new List<int>();
-    public string portrait_type;
-    public List<int> at = new List<int>();
-}
