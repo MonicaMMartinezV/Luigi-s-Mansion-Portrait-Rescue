@@ -488,7 +488,7 @@ class LuigiAgent(Agent):
             self.update_grid_walls(start, next, direction_sn, direction_ns)
             self.action_history.append(f"break wall:{start}-{next}")
             self.action_points -= 2
-            self.model.damage_counter +=1
+            self.model.damage_counter +=2
 
     def open_door(self,coord1, coord2):
         if coord1 in self.model.exit_positions and coord2 in self.model.exit_positions:

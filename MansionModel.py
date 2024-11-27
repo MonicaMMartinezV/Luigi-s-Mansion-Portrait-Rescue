@@ -228,7 +228,7 @@ class MansionModel(Model):
                         reduced = True
                         print(f"[DEBUG] El fuego/humo en {candidate_point} fue removido para poner un retrato.")
                     # Agregar un nuevo retrato (víctima o falsa alarma)
-                    portrait_type = "victim" 
+                    portrait_type = "victim" if random.choice([True, False]) else "false_alarm"
                     self.portraits[candidate_point] = portrait_type
                     self.grid_details[candidate_point] = 0
                     new_points += 1
@@ -501,16 +501,20 @@ class MansionModel(Model):
                 if self.grid_details[neighbor] == 2:
                     self.grid_details[smoke_cell] = 2
                     break
+
         for point in list(self.portraits):
             if self.grid_details[point] == 2:
-                 if point in self.portraits:  # Solo contar si hay un retrato
+                if point in self.portraits:  # Solo contar si hay un retrato
+                    portrait_type = self.portraits[point]
                     del self.portraits[point]
-                    self.casualties += 1
+                    if portrait_type == "victim":  # Incrementar solo si es víctima
+                        self.casualties += 1
                     self.log_event({
-                            "type": "portrait_lost",
-                            "position": point,
-                            "step": self.step_count
-                        })
+                        "type": "portrait_lost",
+                        "position": point,
+                        "portrait_type": portrait_type,
+                        "step": self.step_count
+                    })
                     break
 
     def update_simulation_status(self):
