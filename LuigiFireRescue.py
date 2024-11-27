@@ -111,7 +111,7 @@ LUIGIS = 6
 WALLS, FAKE_ALARMS, PORTRAITS, GHOSTS, DOORS, DOORS_CONNECTED, ENTRANCES = procesar_txt(file_path)
 
 # Definir el número de simulaciones que quieres ejecutar
-NUM_SIMULACIONES = 1000
+NUM_SIMULACIONES = 100
 
 # Para almacenar los resultados de cada simulación
 resultados_simulaciones = []
@@ -187,4 +187,4 @@ for resultado in resultados_simulaciones:
     print(f"  CAUSE: {resultado['end_state']}")
     if resultado['state'] == "Victory":
         count_victory +=1
-print("\nNumero de victorias: {count_victory}")
+print(f"Numero de victorias: {count_victory}")
