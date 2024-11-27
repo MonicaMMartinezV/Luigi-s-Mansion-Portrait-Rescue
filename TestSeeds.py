@@ -152,7 +152,8 @@ for SEED in range(0,100):
             # Changed the attributes to match the MansionModel class definition
             "damage": model.damage_counter,
             "total_deaths": model.losses,
-            "saved_victims": model.rescued
+            "saved_victims": model.rescued,
+            "state": model.simulation_status
         }
         resultados_simulaciones.append(resultado)
 
@@ -184,3 +185,41 @@ for SEED in range(0,100):
         print(f"  Saved Victims: {resultado['saved_victims']}")
 
 print(f"Semillas victoriosas: {winning_seeds}")
+
+# Contadores de estados de las simulaciones
+victorias = sum(1 for resultado in resultados_simulaciones if resultado["state"] == "Victory")
+derrotas = sum(1 for resultado in resultados_simulaciones if resultado["state"] == "Defeat")
+
+# Datos para la gráfica
+labels = ["Victorias", "Derrotas"]
+valores = [victorias, derrotas]
+colores = ["#4CAF50", "#F44336"]  # Verde, rojo, amarillo
+
+# Crear la gráfica de pastel mejorada
+plt.figure(figsize=(8, 8))
+explode = (0.05, 0.05)  # Separar ligeramente cada sector
+wedges, texts, autotexts = plt.pie(
+    valores,
+    labels=labels,
+    autopct="%1.1f%%",
+    startangle=90,
+    colors=colores,
+    textprops={"fontsize": 12},
+    explode=explode,  # Efecto de separación
+    shadow=True  # Agregar sombra
+)
+
+# Personalizar la leyenda
+plt.legend(wedges, labels, title="Resultados", loc="best", fontsize=10)
+
+# Agregar título
+plt.title("Resultados de las 1000 Simulaciones Con Estrategia", fontsize=16, fontweight='bold')
+
+# Mejorar las etiquetas automáticas
+for autotext in autotexts:
+    autotext.set_color('white')  # Cambia el color de las etiquetas de porcentaje
+    autotext.set_fontsize(14)  # Ajusta el tamaño de la fuente
+
+# Mostrar la gráfica
+plt.tight_layout()  # Ajusta automáticamente los márgenes
+plt.show()
