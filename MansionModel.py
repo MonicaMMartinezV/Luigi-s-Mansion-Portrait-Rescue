@@ -391,7 +391,8 @@ class MansionModel(Model):
                         "type": "damage_wall",
                         "position": origin,
                         "target":target,
-                        "step": self.step_count
+                        "step": self.step_count,
+                        "damage":self.damage_counter
                     })
                 else:
                     pass
@@ -435,7 +436,9 @@ class MansionModel(Model):
             self.log_event({
                 "type": "damage_wall",
                 "position": origin,
-                "step": self.step_count
+                "target":origin,
+                "step": self.step_count,
+                "damage":self.damage_counter
             })
         else:
             pass

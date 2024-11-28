@@ -48,6 +48,19 @@ public class SimulationController : MonoBehaviour
             {
                 string json = request.downloadHandler.text;
 
+                // Guardar el JSON en un archivo
+                string filePath = Path.Combine(Application.persistentDataPath, "simulationData.json");
+                try
+                {
+                    File.WriteAllText(filePath, json);
+                    Debug.Log("JSON guardado en: " + filePath);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError("Error al guardar el archivo: " + e.Message);
+                }
+
+                // Deserializar y continuar con la lógica de simulación
                 simulationData = JsonConvert.DeserializeObject<SimulationData>(json);
 
                 if (simulationData != null)
@@ -123,7 +136,7 @@ public class SimulationController : MonoBehaviour
                 HandlePortraitRescued(step);
                 break;
             case "wall_destroyed":
-                HandleWallDestroyed(step.position,step.target);
+                HandleWallDestroyed(step.position,step.target,step.damage);
                 break;
             case "fire_to_smoke":
                 HandleFireExtinguished(step.at);
@@ -143,7 +156,7 @@ public class SimulationController : MonoBehaviour
                 HandleFireAdded(step.to);
                 break;
             case "damage_wall":
-                HandleWallDamaged(step.position, step.target);
+                HandleWallDamaged(step.position, step.target,step.damage);
                 break;
             case "portrait_lost":
                 HandlePortraitLost(step.position);
@@ -193,223 +206,152 @@ public class SimulationController : MonoBehaviour
         Destroy(ghost);
     }
 
-    void HandleWallDestroyed(List<int> position, List<int> target)
+    bool IsValidPosition(List<int> position)
     {
-        if (position == null || position.Count < 2)
+        return position != null && position.Count >= 2;
+    }
+
+    List<string> GetWallTypes(List<int> from, List<int> to)
+    {
+        // Si from y to son iguales, devolver todas las paredes
+        if (from[0] == to[0] && from[1] == to[1])
         {
-            Debug.LogError("Position inválida o nula en HandleWallDestroyed.");
-            return;
+            return new List<string> { "UpperWall", "BottomWall", "LeftWall", "RightWall" };
         }
 
-        if (target == null || target.Count < 2)
+        // Caso normal: devuelve una sola pared
+        if (from[0] == to[0])  // Mismo X (Vertical)
         {
-            Debug.LogError("Target inválido o nulo en HandleWallDestroyed.");
-            return;
+            return new List<string> { from[1] > to[1] ? "UpperWall" : "BottomWall" };
+        }
+        else if (from[1] == to[1])  // Mismo Y (Horizontal)
+        {
+            return new List<string> { from[0] > to[0] ? "LeftWall" : "RightWall" };
         }
 
-        int xPos = position[0];
-        int yPos = position[1];
-        int xTarget = target[0];
-        int yTarget = target[1];
+        // Retornar lista vacía si no aplica ningún caso
+        return new List<string>();
+    }
 
-        string wallTypeFromPosition = "";
-        string wallTypeFromTarget = "";
 
-        // Determinar el tipo de pared en `position`
-        if (xPos == xTarget)  // Mismo X (Vertical)
+    void DestroyWallAtPosition(List<int> position, string wallType)
+    {
+        GameObject floor = GameObject.Find($"Floor ({position[0]},{position[1]})");
+        if (floor != null)
         {
-            if (yTarget < yPos)
-            {
-                wallTypeFromPosition = "UpperWall";
-                wallTypeFromTarget = "BottomWall";
-            }
-            else if (yTarget > yPos)
-            {
-                wallTypeFromPosition = "BottomWall";
-                wallTypeFromTarget = "UpperWall";
-            }
-        }
-        else if (yPos == yTarget)  // Mismo Y (Horizontal)
-        {
-            if (xTarget > xPos)
-            {
-                wallTypeFromPosition = "RightWall";
-                wallTypeFromTarget = "LeftWall";
-            }
-            else if (xTarget < xPos)
-            {
-                wallTypeFromPosition = "LeftWall";
-                wallTypeFromTarget = "RightWall";
-            }
-        }
-
-        Debug.Log($"Posición: ({xPos},{yPos}), Target: ({xTarget},{yTarget}), WallTypeFromPosition: {wallTypeFromPosition}, WallTypeFromTarget: {wallTypeFromTarget}");
-
-        // Destruir la pared en `position`
-        GameObject floorPosition = GameObject.Find($"Floor ({xPos},{yPos})");
-        if (floorPosition != null)
-        {
-            Transform wallTransform = floorPosition.transform.Find(wallTypeFromPosition);
+            Transform wallTransform = floor.transform.Find(wallType);
             if (wallTransform != null)
             {
-                Debug.Log($"Destruyendo {wallTypeFromPosition} en Floor ({xPos},{yPos})");
-                Destroy(wallTransform.gameObject);
-            }
-            else
-            {
-                Debug.LogWarning($"No se encontró el {wallTypeFromPosition} dentro de Floor ({xPos},{yPos}).");
-            }
-        }
-        else
-        {
-            Debug.LogWarning($"No se encontró Floor en la posición ({xPos},{yPos}).");
-        }
-
-        // Destruir la pared en `target`
-        GameObject floorTarget = GameObject.Find($"Floor ({xTarget},{yTarget})");
-        if (floorTarget != null)
-        {
-            Transform wallTransform = floorTarget.transform.Find(wallTypeFromTarget);
-            if (wallTransform != null)
-            {
-                Debug.Log($"Destruyendo {wallTypeFromTarget} en Floor ({xTarget},{yTarget})");
-                Destroy(wallTransform.gameObject);
-
-                // Actualizar contador
-                damage +=2;
-                if (damageCounter != null)
+                if (wallType.Contains("Wall"))  // Solo destruir si es una pared válida
                 {
-                    damageCounter.text = $"Damage: {damage}";
+                    Destroy(wallTransform.gameObject);
+                    Debug.Log($"Destruyendo {wallType} en Floor ({position[0]},{position[1]}).");
                 }
             }
             else
             {
-                Debug.LogWarning($"No se encontró el {wallTypeFromTarget} dentro de Floor ({xTarget},{yTarget}).");
+                Debug.LogWarning($"No se encontró {wallType} en Floor ({position[0]},{position[1]}).");
             }
         }
         else
         {
-            Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
+            Debug.LogWarning($"No se encontró Floor en la posición ({position[0]},{position[1]}).");
         }
     }
 
-    void HandleWallDamaged(List<int> position, List<int> target)
+    void ChangeWallColorAtPosition(List<int> position, string wallType, Color color)
     {
-        if (position == null || position.Count < 2)
+        GameObject floor = GameObject.Find($"Floor ({position[0]},{position[1]})");
+        if (floor != null)
         {
-            Debug.LogError("Position inválida o nula en HandleWallDamaged.");
-            return;
-        }
-
-        if (target == null || target.Count < 2)
-        {
-            Debug.LogError("Target inválido o nulo en HandleWallDamaged.");
-            return;
-        }
-
-        int xPos = position[0];
-        int yPos = position[1];
-        int xTarget = target[0];
-        int yTarget = target[1];
-
-        string wallTypeFromPosition = "";
-        string wallTypeFromTarget = "";
-
-        // Determinar el tipo de pared en `position`
-        if (xPos == xTarget)  // Mismo X (Vertical)
-        {
-            if (yTarget < yPos)
-            {
-                wallTypeFromPosition = "UpperWall";
-                wallTypeFromTarget = "BottomWall";
-            }
-            else if (yTarget > yPos)
-            {
-                wallTypeFromPosition = "BottomWall";
-                wallTypeFromTarget = "UpperWall";
-            }
-        }
-        else if (yPos == yTarget)  // Mismo Y (Horizontal)
-        {
-            if (xTarget > xPos)
-            {
-                wallTypeFromPosition = "RightWall";
-                wallTypeFromTarget = "LeftWall";
-            }
-            else if (xTarget < xPos)
-            {
-                wallTypeFromPosition = "LeftWall";
-                wallTypeFromTarget = "RightWall";
-            }
-        }
-
-        Debug.Log($"Posición: ({xPos},{yPos}), Target: ({xTarget},{yTarget}), WallTypeFromPosition: {wallTypeFromPosition}, WallTypeFromTarget: {wallTypeFromTarget}");
-
-        // Cambiar color de la pared en `position`
-        GameObject floorPosition = GameObject.Find($"Floor ({xPos},{yPos})");
-        if (floorPosition != null)
-        {
-            Transform wallTransform = floorPosition.transform.Find(wallTypeFromPosition);
+            Transform wallTransform = floor.transform.Find(wallType);
             if (wallTransform != null)
             {
                 Renderer renderer = wallTransform.GetComponent<Renderer>();
                 if (renderer != null)
                 {
-                    renderer.material.color = Color.red; // Cambia la pared a rojo
-                    Debug.Log($"Pared {wallTypeFromPosition} en Floor ({xPos},{yPos}) cambiada a rojo.");
+                    renderer.material.color = color;
+                    Debug.Log($"Cambiado el color de {wallType} en Floor ({position[0]},{position[1]}) a {color}.");
                 }
                 else
                 {
-                    Debug.LogWarning($"No se encontró un Renderer en {wallTypeFromPosition} de Floor ({xPos},{yPos}).");
+                    Debug.LogWarning($"Renderer no encontrado en {wallType} de Floor ({position[0]},{position[1]}).");
                 }
             }
             else
             {
-                Debug.LogWarning($"No se encontró el {wallTypeFromPosition} dentro de Floor ({xPos},{yPos}).");
+                Debug.LogWarning($"No se encontró {wallType} en Floor ({position[0]},{position[1]}).");
             }
         }
         else
         {
-            Debug.LogWarning($"No se encontró Floor en la posición ({xPos},{yPos}).");
+            Debug.LogWarning($"No se encontró Floor en la posición ({position[0]},{position[1]}).");
         }
+    }
 
-        // Cambiar color de la pared en `target`
-        GameObject floorTarget = GameObject.Find($"Floor ({xTarget},{yTarget})");
-        if (floorTarget != null)
-        {
-            Transform wallTransform = floorTarget.transform.Find(wallTypeFromTarget);
-            if (wallTransform != null)
-            {
-                Renderer renderer = wallTransform.GetComponent<Renderer>();
-                if (renderer != null)
-                {
-                    renderer.material.color = Color.red; // Cambia la pared a rojo
-                    Debug.Log($"Pared {wallTypeFromTarget} en Floor ({xTarget},{yTarget}) cambiada a rojo.");
-                }
-                else
-                {
-                    Debug.LogWarning($"No se encontró un Renderer en {wallTypeFromTarget} de Floor ({xTarget},{yTarget}).");
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"No se encontró el {wallTypeFromTarget} dentro de Floor ({xTarget},{yTarget}).");
-            }
-        }
-        else
-        {
-            Debug.LogWarning($"No se encontró Floor en la posición ({xTarget},{yTarget}).");
-        }
-
-        // Actualizar contador
-        damage++;
+    void UpdateDamageCounter()
+    {
         if (damageCounter != null)
         {
             damageCounter.text = $"Damage: {damage}";
         }
+    }
 
-        // Efecto de sacudida de cámara
-        StartCoroutine(CameraShake());
+    void HandleWallDestroyed(List<int> position, List<int> target, int damage_counter)
+    {
+        if (!IsValidPosition(position) || !IsValidPosition(target))
+        {
+            Debug.LogError("Position o Target inválidos en HandleWallDestroyed.");
+            return;
+        }
+
+        // Obtener las paredes para la posición y el target
+        List<string> wallTypesFromPosition = GetWallTypes(position, target);
+
+        // Destruir las paredes en `position`
+        foreach (string wallType in wallTypesFromPosition)
+        {
+            DestroyWallAtPosition(position, wallType);
+        }
+
+        // Obtener las paredes para `target`
+        List<string> wallTypesFromTarget = GetWallTypes(target, position);
+        foreach (string wallType in wallTypesFromTarget)
+        {
+            DestroyWallAtPosition(target, wallType);
+        }
+
+        // Actualizar el contador de daño
+        damage = damage_counter;
+        UpdateDamageCounter();
+    }
+
+
+    void HandleWallDamaged(List<int> position, List<int> target, int damage_counter)
+    {
+        if (!IsValidPosition(position) || !IsValidPosition(target))
+        {
+            Debug.LogError("Position o Target inválidos en HandleWallDamaged.");
+            return;
+        }
+
+        // Obtener las paredes para la posición
+        List<string> wallTypesFromPosition = GetWallTypes(position, target);
+        foreach (string wallType in wallTypesFromPosition)
+        {
+            ChangeWallColorAtPosition(position, wallType, Color.red);
+        }
+
+        // Obtener las paredes para `target`
+        List<string> wallTypesFromTarget = GetWallTypes(target, position);
+        foreach (string wallType in wallTypesFromTarget)
+        {
+            ChangeWallColorAtPosition(target, wallType, Color.red);
+        }
+
+        // Actualizar el contador de daño
+        damage = damage_counter;
+        UpdateDamageCounter();
     }
 
     IEnumerator CameraShake(float duration = 0.2f, float magnitude = 0.1f)
@@ -1028,6 +970,7 @@ public class Step
     public List<int> target;
     public List<int> position;
     public int step;
+    public int damage;
     public string type;
     public string portrait_type;
 }

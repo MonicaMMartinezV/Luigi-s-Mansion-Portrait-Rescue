@@ -563,10 +563,11 @@ class LuigiAgent(Agent):
             
             # Registra el evento en el modelo
             self.model.log_event({
-                "type": "wall_destroyed", # Define el tipo de evento como "wall_destroyed"
-                "agent": self.unique_id,  # Identifica al agente que realizó la acción mediante su ID único
-                "position": start,        # Registra la posición inicial desde donde se rompió la pared
-                "target": next            # Registra la posición objetivo donde estaba la pared rota
+                "type": "wall_destroyed",
+                "agent": self.unique_id,
+                "position": start,
+                "target": next,
+                "damage":self.model.damage_counter
             })
 
     # Abre una puerta entre dos celdas
