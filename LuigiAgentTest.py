@@ -501,7 +501,8 @@ class LuigiAgent(Agent):
                 "type": "wall_destroyed",
                 "agent": self.unique_id,
                 "position": start,
-                "target": next
+                "target": next,
+                "damage":self.model.damage_counter
             })
 
     def open_door(self,coord1, coord2):
