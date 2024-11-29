@@ -526,33 +526,54 @@ class MansionModel(Model):
                    target not in self.entrances:
                     self.wall_damage(origin, target)
     
+ 
+    # Aplica daño a un muro específico entre dos celdas
     def wall_damage(self, origin, target):
+        # Determinar dirección del muro a partir de origen y destino
         path_org       = self.direction(origin, target)
+
+        # Obtener muros y contadores de daño de la celda origen
         origin_wall    = list(self.grid_walls[origin][0])
+
+        # Caso: El muro ya estaba dañado ("1"), se destruye completamente
         origin_counter = list(self.grid_walls[origin][1])
         if origin_counter[path_org]== "1":
+            # Incrementar contador de daño
             self.damage_counter += 1
+            # Marcar muro como destruido
             origin_wall[path_org]= "0"
+
+            # Actualizar el grid
             self.grid_walls[origin][0] = ''.join(origin_wall)
             print(f"[INFO] Pared destruida de {origin} a {target}")
             self.log_event({
                 "type": "wall_destroyed",
-                "from": origin,
-                "to": target,
+                "position": origin,
+                "target": target,
                 "step": self.step_count
             })
+
+        # Caso: El muro estaba intacto ("0"), se marca como dañado
         elif origin_counter[path_org]== "0":
+            # Incrementar contador de daño
             self.damage_counter += 1
+
+            # Registrar daño en el muro
             origin_counter[path_org] = "1"
+            
+            # Actualizar contador en el grid
             self.grid_walls[origin][1] = ''.join(origin_counter)
             print(f"[INFO] Daño registrado en {origin}")
             self.log_event({
                 "type": "damage_wall",
                 "position": origin,
-                "step": self.step_count
+                "target":origin,
+                "step": self.step_count,
+                "damage":self.damage_counter
             })
         else:
             pass
+
 
     def trigger_explosion(self, origin, target):
         """
