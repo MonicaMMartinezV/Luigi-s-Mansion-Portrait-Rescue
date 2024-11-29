@@ -97,7 +97,7 @@ class LuigiAgent(Agent):
 
                     # Penaliza paredes para que no tome ese path tan seguido
                     if self.check_collision_walls(present_node, neighbor):
-                        cost += 4
+                        cost += 2
                     
                     # Penaliza puertas para que prefiera el path sin ningun obstaculo
                     if self.check_collision_doors(present_node, neighbor):
@@ -409,6 +409,14 @@ class LuigiAgent(Agent):
                     else:
                         print(f"[DEBUG] No hay más retratos para el agente {self.unique_id}. Terminando turno.")
                         break
+
+    def manhattan_heuristic(self, cell, goal):
+        # Calcula la heurística Manhattan entre dos celdas
+
+        # La distancia de Manhattan es la suma de las diferencias absolutas 
+        # entre las coordenadas de las dos celdas
+        return abs(cell[0] - goal[0]) + abs(cell[1] - goal[1]) + random.uniform(0, 0.5)
+        # Se agrega un factor aleatorio para romper posibles empates
 
     def firefighter_strategy(self):
         """Estrategia para agentes cuyo rol es apagar incendios."""
