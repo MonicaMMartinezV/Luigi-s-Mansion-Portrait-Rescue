@@ -14,24 +14,39 @@ class MansionModel(Model):
                  victims, walls, doors, boo, 
                  entrances, mode, seed):
         # Inicializar la clase base Model sin argumentos adicionales
-        
         super().__init__()
-
-        print(f"Seed: {seed}")
-        random.seed(seed)
+        
+        print(f"Corriendo con semilla: {seed}")
 
         # Variables iniciales del modelo
+
+        # Contador de pasos en la simulación
         self.step_count        = 0
-        self.schedule          = BaseScheduler(self)  # Usamos BaseScheduler para compatibilidad futura
+        # Planificador para manejar agentes
+        self.schedule          = BaseScheduler(self)
+        
+        # Número de retratos rescatados
         self.rescued           = 0
+        # Número de pérdidas durante la simulación
         self.losses            = 0
+
+
+        # Número de víctimas
         self.casualties        = 0
         #self.saved_count      = 0
+        # Estado inicial de la simulación
         self.simulation_status = "In progress"
+        # Mensaje al finalizar la simulación
         self.simulation_end    = ""
+
+
+        # Coordenadas de zonas de fantasmas
         self.boo_zones         = [(row, col) for col, row in boo]
+        # Configuración de los muros
         self.wall_config       = walls
+        # Modo de la simulación
         self.mode              = mode
+        # Lista para almacenar eventos del modelo
         self.model_events = []
 
         # Configuración del recolector de datos
@@ -341,73 +356,172 @@ class MansionModel(Model):
                             pass
 
 
+    # Registra daño en muros o puertas entre dos celdas del grid                      
     def register_damage_walls_doors(self, origin, target):
-        """Registra daño en muros o puertas."""
+        # Si ambas posiciones son puertas y están cerradas (False en self.exit_positions)
         if origin in self.exit_positions and target in self.exit_positions:
+            
+            
             if self.exit_positions[origin]==False and self.exit_positions[target]==False:
+                
+                # Eliminar ambas puertas de la lista de puertas activas
                 del self.exit_positions[origin]
+
                 del self.exit_positions[target]
+                
+                
+                # Obtener las configuraciones de muros de ambas posiciones
+                # Muro de origen
                 origin_wall = list(self.grid_walls[origin][0])
+
+                # Muro de destino
                 target_wall = list(self.grid_walls[target][0])
+
+
+                # Determinar las direcciones relativas entre origen y destino
+                # Dirección del muro en origen
                 path_org = self.direction(origin, target)
+
+                # Dirección del muro en destino
                 path_targ = self.direction(target, origin)
+
+
+                # Marcar las paredes como destruidas (0 indica muro destruido)
                 origin_wall[path_org] = "0"
+
                 target_wall[path_targ] = "0"
+                
+
+                # Actualizar las configuraciones de muros en el grid
                 self.grid_walls[origin][0] = "".join(origin_wall)
+
+                # Incrementar el contador de daño total
                 self.grid_walls[target][0] = "".join(target_wall)
                 self.damage_counter += 1
         else:
+            # Definir el área central del grid para limitar la acción
             central_area = [
                 (x, y) for x in range(1, 9) for y in range(1, 7)
             ]
             
+            # Si el objetivo está dentro del área central
             if target in central_area:
+                # Determinar direcciones entre origen y destino
                 path_org= self.direction(origin, target)
+                # `path_org` representa la dirección relativa desde la celda `origin` hacia la celda `target`
+                # Por ejemplo, si `origin` está al norte de `target`, `path_org` será 2 (indicando dirección sur)
+
+                # `path_targ` representa la dirección relativa desde la celda `target` hacia la celda `origin`
+                # Este valor es complementario al de `path_org`. Por ejemplo, si `path_org` es 2 (sur), `path_targ` será 0 (norte)
                 path_targ= self.direction(target, origin)
+
+                # Obtener muros y contadores de daños para origen y destino
                 origin_wall = list(self.grid_walls[origin][0])
+                # `origin_wall` es una lista que indica el estado de los muros en la celda `origin`
+                # Cada posición de la lista (0 a 3) corresponde a una dirección cardinal:
+                # - 0: Norte
+                # - 1: Este
+                # - 2: Sur
+                # - 3: Oeste
+                # El valor "1" significa que hay un muro presente, y "0" significa que el muro está destruido
+                
+                # Obtener la configuración de los muros en la celda de destino
                 target_wall = list(self.grid_walls[target][0])
+                # `target_wall` funciona igual que `origin_wall`, pero para la celda `target`
+                
+                
+                # Obtener los contadores de daño en la celda de origen
                 origin_counter = list(self.grid_walls[origin][1])
+                # `origin_counter` es una lista que indica si un muro en `origin` ha recibido daño:
+                # - "0": No ha recibido daño
+                # - "1": Ha recibido daño pero aún no está destruido
+
+                # Obtener los contadores de daño en la celda de destino
                 target_counter = list(self.grid_walls[target][1])
+                # `target_counter` funciona igual que `origin_counter`, pero para la celda `target`
+                
+                # Caso: Ambas celdas ya tienen el muro marcado como dañado ("1")
                 if origin_counter[path_org]== "1" and target_counter[path_targ]== "1":
+                    # Verifica si ambos lados del muro (en `origin` y `target`) ya tienen daño registrado
+                    
+                    # Incrementa el contador global de daño en el modelo, que registra cuántos muros han sido destruidos o dañados
                     self.damage_counter += 1
+                    
+                    # Actualiza el muro en `origin` para marcarlo como destruido (cambiar "1" a "0")
                     origin_wall[path_org]= "0"
+
+                    # Actualiza el muro en `target` para marcarlo como destruido (cambiar "1" a "0")
                     target_wall[path_targ]= "0"
+                    
+                    # Convierte la lista de `origin_wall` nuevamente en una cadena y la guarda en `self.grid_walls[origin][0]`.
+                    # Esto asegura que el estado del muro en `origin` quede registrado correctamente en el modelo.
                     self.grid_walls[origin][0] = ''.join(origin_wall)
+                    
+                    # Convierte la lista de `target_wall` nuevamente en una cadena y la guarda en `self.grid_walls[target][0]`.
+                    # Esto asegura que el estado del muro en `target` quede registrado correctamente en el modelo.
                     self.grid_walls[target][0] = ''.join(target_wall)
+                    
                     print(f"[INFO] Pared destruida de {origin} a {target}")
+                    
                     self.log_event({
                         "type": "wall_destroyed",
-                        "from": origin,
-                        "to": target,
+                        "position": origin,
+                        "target": target,
                         "step": self.step_count
                     })
+
+                # Caso: Ninguna celda tiene daño registrado previamente
                 elif origin_counter[path_org]== "0" and target_counter[path_targ]== "0":
+                    # Incrementar daño total
                     self.damage_counter += 1
+
+                    # Registrar daño en origen
                     origin_counter[path_org] = "1"
+
+                    # Registrar daño en destino
                     target_counter[path_targ] = "1"
+
+                    # Actualizar contadores de daño en el grid
                     self.grid_walls[origin][1] = ''.join(origin_counter)
+
+
                     self.grid_walls[target][1] = ''.join(target_counter)
                     print(f"[INFO] Daño registrado en {origin} y {target}")
+                    
                     self.log_event({
-                        "type": "damage_door",
+                        "type": "damage_wall",
                         "position": origin,
-                        "step": self.step_count
+                        "target":target,
+                        "step": self.step_count,
+                        "damage":self.damage_counter
                     })
                 else:
                     pass
+            # Caso: La celda objetivo está fuera del área central
             else:
+                # Determinar dirección entre origen y destino
                 direction = self.direction(origin, target)
-                origin_nw_crnr = (1,1)
-                origin_ne_crnr = (8,1)
-                origin_sw_crnr = (1,6)
-                origin_sw_crnr = (8,6)
+
+                # Definir coordenadas de las esquinas del grid
+                origin_nw_crnr = (1,1) # Esquina noroeste
+                origin_ne_crnr = (8,1) # Esquina noreste
+                origin_sw_crnr = (1,6) # Esquina suroeste
+                origin_sw_crnr = (8,6) # Esquina sureste
                 
+                # Validar si la posición está en una esquina específica y no en la dirección opuesta
                 if origin == origin_nw_crnr or origin == origin_ne_crnr:
+                    
+                    # Dirección prohibida para estas esquinas
                     if direction != 0:
                         self.wall_damage(origin, target)
+                
                 elif origin == origin_sw_crnr or origin == origin_ne_crnr:
+                    
+                    # Dirección prohibida para estas esquinas
                     if direction != 2:
                         self.wall_damage(origin, target)
+
+                # Caso general: Ni origen ni destino son entradas
                 elif origin not in self.entrances and \
                    target not in self.entrances:
                     self.wall_damage(origin, target)
