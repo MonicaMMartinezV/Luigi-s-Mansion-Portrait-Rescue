@@ -16,21 +16,38 @@ class MansionModel(Model):
         # Inicializar la clase base Model sin argumentos adicionales
         
         super().__init__()
-
-        print(f"Seed: {seed}")
-        random.seed(seed)
+          
+        print(f"Corriendo con semilla: {seed}")
 
         # Variables iniciales del modelo
+
+        # Contador de pasos en la simulación
         self.step_count        = 0
-        self.schedule          = BaseScheduler(self)  # Usamos BaseScheduler para compatibilidad futura
+        # Planificador para manejar agentes
+        self.schedule          = BaseScheduler(self)
+        
+        # Número de retratos rescatados
         self.rescued           = 0
+        # Número de pérdidas durante la simulación
         self.losses            = 0
+
+
+        # Número de víctimas
         self.casualties        = 0
         #self.saved_count      = 0
+        # Estado inicial de la simulación
         self.simulation_status = "In progress"
+        # Mensaje al finalizar la simulación
+        self.simulation_end    = ""
+
+
+        # Coordenadas de zonas de fantasmas
         self.boo_zones         = [(row, col) for col, row in boo]
+        # Configuración de los muros
         self.wall_config       = walls
+        # Modo de la simulación
         self.mode              = mode
+        # Lista para almacenar eventos del modelo
         self.model_events = []
 
         # Configuración del recolector de datos

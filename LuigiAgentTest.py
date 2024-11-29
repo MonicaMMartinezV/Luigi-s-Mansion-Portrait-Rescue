@@ -20,61 +20,120 @@ class LuigiAgent(Agent):
         self.carrying_portrait = False  # Indica si el agente lleva un retrato (víctima)
         self.in_central_grid   = False  # Indica si el agente se encuentra dentro del grid central
 
-    def heuristic(self, cell, goal):
-        """Calcula la distancia Manhattan entre una celda y un objetivo."""
-        return abs(cell[0] - goal[0]) + abs(cell[1] - goal[1]) + random.uniform(0, 0.5)
-    
-    def a_star(self, grid, ag, goals):
-        open_list = [(0, ag)]  # priority queue
-        closed_list = set()
-        came_from = {}
-        cost_so_far = {ag: 0}
+    # Calcula una heurística basada en la distancia de Manhattan más un factor aleatorio
+    def manhattan_heuristic(self, cell, goal):
+        # Calcula la heurística Manhattan entre dos celdas
 
+        # La distancia de Manhattan es la suma de las diferencias absolutas 
+        # entre las coordenadas de las dos celdas
+        return abs(cell[0] - goal[0]) + abs(cell[1] - goal[1]) + random.uniform(0, 0.5)
+        # Se agrega un factor aleatorio para romper posibles empates
+    
+    # Implementa el algoritmo de Dijkstra para encontrar el camino más corto entre puntos
+    def dijkstra(self, details, ptk, goals):
+        # Inicializa un diccionario para almacenar 
+        # los costos acumulados desde el punto inicial
+        path_cost = {ptk: 0}
+        
+        # Inicializa un conjunto para rastrear los nodos 
+        # ya visitados
+        path_close = set()
+        # Inicializa un diccionario para mapear cada nodo a 
+        # su nodo anterior en el camino
+        path_past = {}
+        # Inicializa la cola de prioridad
+
+        # Inicializa una cola de prioridad para manejar los nodos abiertos,
+        # comenzando con el nodo inicial `ptk` y un costo de 0
+        analize_path = [(0, ptk)]
+        # Si hay objetivos definidos (lista de metas no vacía)
         if len(goals) >= 1:
-            while open_list:
-                _, current = heapq.heappop(open_list)
-                if current in goals:
+            
+            # Mientras haya nodos por evaluar en la cola de prioridad
+            while analize_path:
+                # Extrae el nodo con menor costo acumulado 
+                # de la cola de prioridad
+                _, present_node = heapq.heappop(analize_path)
+                
+                # Si el nodo actual es uno de los objetivos,
+                # construye el camino más corto
+                if present_node in goals:
+                    # Construye el camino mas corto
                     path = []
-                    while current in came_from:
-                        path.append(current)
-                        current = came_from[current]
+                    
+                    # Retrocede desde el nodo actual hasta el 
+                    # nodo inicial utilizando `path_past`
+                    while present_node in path_past:
+                        path.append(present_node)
+
+                        present_node = path_past[present_node]
+                    # Devuelve el camino invertido
                     return path[::-1]
 
-                closed_list.add(current)
-                for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:  # 4-neighbors
-                    x, y = current[0] + dx, current[1] + dy
+                # Marca el nodo actual como visitado añadiéndolo al conjunto `path_close`
+                path_close.add(present_node)
+                
+                # Explora todos los vecinos (adyacentes) del nodo actual
+                for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                    # Calcula las coordenadas del vecino
+                    x, y = present_node[0] + dx, present_node[1] + dy
                     neighbor = (x, y)
 
-                    if neighbor not in grid:
-                        continue
-                    if neighbor in closed_list:
+                    # Si el vecino no es válido (fuera de los 
+                    # detalles del modelo), lo omite
+                    if neighbor not in details:
                         continue
 
-                    cost = grid[neighbor]
-                    if self.check_collision_walls(current, neighbor):
-                        cost += 2
-                    if self.check_collision_doors(current, neighbor):
+                    # Si el vecino ya ha sido visitado, lo omite
+                    if neighbor in path_close:
+                        continue
+
+                    # Obtiene el costo base del vecino desde `details`
+                    cost = details[neighbor]
+
+                    # Penaliza obstáculos para que no tome ese path tan seguido
+                    # Cada path tiene un costo fijo
+                    # Esto para que pueda escoger el camino mas corto
+
+                    # Penaliza paredes para que no tome ese path tan seguido
+                    if self.check_collision_walls(present_node, neighbor):
+                        cost += 4
+                    
+                    # Penaliza puertas para que prefiera el path sin ningun obstaculo
+                    if self.check_collision_doors(present_node, neighbor):
                         cost += 1
 
-                    tentative_cost = cost_so_far[current] + cost
+                    # Calcula el costo tentativo para llegar al vecino
+                    for_the_moment_cost = path_cost[present_node] + cost
+                    
+                    # Si el vecino no tiene costo registrado o el costo tentativo es menor,
+                    # lo actualiza
+                    if neighbor not in path_cost or for_the_moment_cost < path_cost[neighbor]:
+                        # Actualiza el costo del vecino
+                        path_cost[neighbor] = for_the_moment_cost
+                        # Calcula las heurísticas hacia todos los objetivos desde el vecino
+                        valid_goals = [self.manhattan_heuristic(neighbor, goal) for goal in goals]
+                        
 
-                    if neighbor not in cost_so_far or tentative_cost < cost_so_far[neighbor]:
-                        cost_so_far[neighbor] = tentative_cost
-
-                        # Verificar si hay un objetivo válido
-                        valid_goals = [self.heuristic(neighbor, goal) for goal in goals]
-
+                        # Determina la prioridad del vecino considerando el costo y la heurística
                         if valid_goals:
-                            priority = tentative_cost + min(valid_goals)
+                            priority = for_the_moment_cost + min(valid_goals)
                         else:
-                            # Si no hay objetivos válidos, usar la ubicación del agente
-                            priority = tentative_cost + self.heuristic(neighbor, ag)
+                            # Si no hay heurísticas válidas, usa una heurística hacia el punto inicial
+                            priority = for_the_moment_cost + self.manhattan_heuristic(neighbor, ptk)
 
-                        heapq.heappush(open_list, (priority, neighbor))
-                        came_from[neighbor] = current
-            return [ag]  # no path found
+                        # Añade el vecino a la cola de prioridad
+                        heapq.heappush(analize_path, (priority, neighbor))
+                        # Registra de dónde vino el vecino
+                        path_past[neighbor] = present_node
+            
+            # Si no hay camino, devuelve posición inicial
+            return [ptk]
+        
         else:
-            return [ag]
+            # Sin objetivos, retorna posición inicial
+            return [ptk]
+    
     
     def check_collision_walls(self, start, next):
         """Verifica si hay una colisión entre dos posiciones."""
@@ -117,7 +176,7 @@ class LuigiAgent(Agent):
         if self.pos == target:
             return True  # El agente ya está en la celda objetivo
 
-        path = self.a_star(self.model.grid_details, self.pos, [target])
+        path = self.dijkstra(self.model.grid_details, self.pos, [target])
         print(f"Agente {self.unique_id} tiene el camino: {path}")
         if not path:
             print(f"Agente {self.unique_id} no puede alcanzar el objetivo desde {self.pos}.")
@@ -244,7 +303,7 @@ class LuigiAgent(Agent):
                 # Si lleva un retrato, moverse hacia la salida más cercana
                 valid_exits = [pos for pos in self.model.entrances if isinstance(pos, tuple) and len(pos) == 2]
                 if valid_exits:
-                    nearest_exit = min(valid_exits, key=lambda pos: self.heuristic(self.pos, pos))
+                    nearest_exit = min(valid_exits, key=lambda pos: self.manhattan_heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} lleva retrato. Moviéndose hacia la salida más cercana: {nearest_exit}")
                     
                     # Verificar si hay puertas o paredes en el camino
@@ -309,7 +368,7 @@ class LuigiAgent(Agent):
                     ]
                     if portraits:
                         # Encontrar el retrato más cercano usando Manhattan
-                        nearest_portrait = min(portraits, key=lambda pos: self.heuristic(self.pos, pos))
+                        nearest_portrait = min(portraits, key=lambda pos: self.manhattan_heuristic(self.pos, pos))
                         print(f"[DEBUG] Agente {self.unique_id} buscando retrato. Moviéndose hacia el retrato más cercano: {nearest_portrait}")
                         
                         # Verificar si hay puertas o paredes en el camino
@@ -364,7 +423,7 @@ class LuigiAgent(Agent):
                 # Buscar la celda más cercana con humo (valor 1) o fuego (valor 2)
                 fire_cells = [pos for pos, value in self.model.grid_details.items() if value == 1 or value == 2]
                 if fire_cells:
-                    nearest_fire = min(fire_cells, key=lambda pos: self.heuristic(self.pos, pos))
+                    nearest_fire = min(fire_cells, key=lambda pos: self.manhattan_heuristic(self.pos, pos))
                     print(f"[DEBUG] Agente {self.unique_id} buscando fuego. Moviéndose hacia el fuego más cercano: {nearest_fire}")
 
                     # Verificar si hay puertas o paredes en el camino
@@ -428,13 +487,26 @@ class LuigiAgent(Agent):
                     print(f"[DEBUG] Agente {self.unique_id} no encuentra más fuego ni humo.")
                     break
 
+
+    # Actualiza las paredes en la cuadrícula después de romper una pared
+    # `origin` y `target` son las celdas adyacentes donde se rompe la pared
+    # `direction_sn` y `direction_ns` son las direcciones relativas entre las celdas
     def update_grid_walls(self, origin, target, direction_sn, direction_ns):
+        # Obtiene las paredes de la celda de origen como lista
         origin_wall = list(self.model.grid_walls[origin][0])
+
+        # Obtiene las paredes de la celda de destino como lista
         target_wall = list(self.model.grid_walls[target][0])
+        # Marca como rota la pared en la dirección `direction_sn` desde el origen
         origin_wall[direction_sn]= "0"
+
+        # Marca como rota la pared en la dirección `direction_ns` desde el destino
         target_wall[direction_ns]= "0"
+
+        # Convierte las listas de paredes actualizadas de nuevo a cadenas y actualiza el modelo
         self.model.grid_walls[origin][0] = ''.join(origin_wall)
         self.model.grid_walls[target][0] = ''.join(target_wall)
+
 
     
     def break_wall(self, start, next):
@@ -447,18 +519,20 @@ class LuigiAgent(Agent):
             self.action_points -= 2
             self.model.damage_counter +=2
 
-    def open_door(self,coord1, coord2):
-        if coord1 in self.model.exit_positions and coord2 in self.model.exit_positions:
-            self.model.exit_positions[coord1] = True
-            self.model.exit_positions[coord2] = True
-            self.action_history.append(f"open door:{coord1}-{coord2}")
-            self.action_points -= 1
 
-    def close_door(self,coord1, coord2):
-        if coord1 in self.model.exit_positions and coord2 in self.model.exit_positions:
-            self.model.exit_positions[coord1] = False
-            self.model.exit_positions[coord2] = False
-            self.action_history.append(f"close door:{coord1}-{coord2}")
+    # Cierra una puerta entre dos celdas
+    # `x1` y `y1` son las celdas adyacentes donde se encuentra la puerta
+    def close_door(self,x1, y1):
+        if x1 in self.model.exit_positions and y1 in self.model.exit_positions:
+            # Marca la puerta como cerrada en ambas posiciones
+            self.model.exit_positions[x1] = False
+
+            self.model.exit_positions[y1] = False
+
+            # Registra la acción en el historial
+            self.action_history.append(f"close door:{x1}-{y1}")
+
+            # Resta 1 punto de acción por cerrar la puerta
             self.action_points -= 1
 
     def step(self):
@@ -500,3 +574,18 @@ class LuigiAgent(Agent):
         """Método que permite al agente alternar entre llevar un retrato o no."""
         self.carrying_portrait = not self.carrying_portrait
         print(f"Agente {self.unique_id} ahora {'lleva un retrato' if self.carrying_portrait else 'no lleva un retrato'}.")
+
+    
+    # Abre una puerta entre dos celdas
+    # `x1` y `y1` son las celdas adyacentes donde se encuentra la puerta
+    def open_door(self,x1, y1):
+        if x1 in self.model.exit_positions and y1 in self.model.exit_positions:
+            # Marca la puerta como abierta en ambas posiciones
+            self.model.exit_positions[x1] = True
+            self.model.exit_positions[y1] = True
+
+            # Registra la acción en el historial
+            self.action_history.append(f"open door:{x1}-{y1}")
+
+            # Resta 1 punto de acción por abrir la puerta
+            self.action_points -= 1
